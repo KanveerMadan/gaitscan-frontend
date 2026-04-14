@@ -1,12 +1,248 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import axios from "axios";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, LineChart, Line } from "recharts";
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, LineChart, Line
+} from "recharts";
 
 const API = "https://gaitscan.onrender.com";
 
-export default function App() {
+// ─────────────────────────────────────────────────────────────
+// AUTH CONTEXT
+// ─────────────────────────────────────────────────────────────
+const AuthContext = createContext(null);
+function useAuth() { return useContext(AuthContext); }
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("gaitscan_user")); }
+    catch { return null; }
+  });
+
+  useEffect(() => {
+    if (user) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
+    } else {
+      delete axios.defaults.headers.common["Authorization"];
+    }
+  }, [user]);
+
+  const login = (userData) => {
+    localStorage.setItem("gaitscan_user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("gaitscan_user");
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH PAGES
+// ─────────────────────────────────────────────────────────────
+function LoginPage({ onSwitch }) {
+  const { login } = useAuth();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!form.email || !form.password) { setError("Please fill in all fields."); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await axios.post(`${API}/auth/login`, form);
+      login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
+    } catch (e) {
+      setError(e.response?.data?.detail || "Login failed. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={S.authPage}>
+      <div style={S.authCard}>
+        <div style={S.authLogo}>GaitScan</div>
+        <div style={S.authBeta}>Beta</div>
+        <h2 style={S.authHeading}>Sign in to your account</h2>
+        {error && <div style={S.authError}>{error}</div>}
+        <div style={S.formGroup}>
+          <label style={S.label}>Email</label>
+          <input style={S.input} type="email" placeholder="you@example.com"
+            value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+        </div>
+        <div style={S.formGroup}>
+          <label style={S.label}>Password</label>
+          <input style={S.input} type="password" placeholder="••••••••"
+            value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+        </div>
+        <button style={{ ...S.primaryBtn, opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+        <p style={S.switchText}>
+          Don't have an account?{" "}
+          <span style={S.switchLink} onClick={onSwitch}>Create one</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RegisterPage({ onSwitch }) {
+  const { login } = useAuth();
+  const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "patient" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!form.email || !form.password || !form.full_name) { setError("Please fill in all fields."); return; }
+    if (form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await axios.post(`${API}/auth/register`, form);
+      login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
+    } catch (e) {
+      setError(e.response?.data?.detail || "Registration failed. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={S.authPage}>
+      <div style={S.authCard}>
+        <div style={S.authLogo}>GaitScan</div>
+        <div style={S.authBeta}>Beta</div>
+        <h2 style={S.authHeading}>Create your account</h2>
+        {error && <div style={S.authError}>{error}</div>}
+        <div style={S.formGroup}>
+          <label style={S.label}>Full name</label>
+          <input style={S.input} type="text" placeholder="Dr. Priya Sharma"
+            value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
+        </div>
+        <div style={S.formGroup}>
+          <label style={S.label}>Email</label>
+          <input style={S.input} type="email" placeholder="you@example.com"
+            value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+        </div>
+        <div style={S.formGroup}>
+          <label style={S.label}>Password</label>
+          <input style={S.input} type="password" placeholder="At least 6 characters"
+            value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+        </div>
+        <div style={S.formGroup}>
+          <label style={S.label}>I am a</label>
+          <div style={S.roleRow}>
+            {[
+              { key: "patient", icon: "🧍", label: "Patient" },
+              { key: "clinician", icon: "🩺", label: "Clinician" }
+            ].map(({ key, icon, label }) => (
+              <button key={key} onClick={() => setForm({ ...form, role: key })}
+                style={form.role === key ? S.roleActive : S.roleInactive}>
+                <span style={{ fontSize: 18 }}>{icon}</span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <button style={{ ...S.primaryBtn, opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>
+          {loading ? "Creating account..." : "Create account"}
+        </button>
+        <p style={S.switchText}>
+          Already have an account?{" "}
+          <span style={S.switchLink} onClick={onSwitch}>Sign in</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AuthGate({ children }) {
+  const { user } = useAuth();
+  const [showLogin, setShowLogin] = useState(true);
+  if (!user) {
+    return showLogin
+      ? <LoginPage onSwitch={() => setShowLogin(false)} />
+      : <RegisterPage onSwitch={() => setShowLogin(true)} />;
+  }
+  return children;
+}
+
+// ─────────────────────────────────────────────────────────────
+// NAVBAR  (replaces the old header)
+// ─────────────────────────────────────────────────────────────
+function Navbar({ tab, setTab }) {
+  const { user, logout } = useAuth();
+  const roleColor = user?.role === "clinician" ? "#185FA5" : "#0F6E56";
+  const roleBg   = user?.role === "clinician" ? "#E6F1FB" : "#E1F5EE";
+
+  return (
+    <div style={{ background: "#fff", borderBottom: "1px solid #eee", padding: "0 2rem" }}>
+      <div style={{ maxWidth: 920, margin: "0 auto", display: "flex", alignItems: "center", height: 60 }}>
+        <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.5 }}>GaitScan</span>
+        <span style={{ marginLeft: 10, fontSize: 12, background: "#E6F1FB", color: "#185FA5", padding: "2px 8px", borderRadius: 10, fontWeight: 500 }}>Beta</span>
+
+        {/* Nav tabs */}
+        <div style={{ marginLeft: 32, display: "flex", gap: 4 }}>
+          {[["analyse", "🎥 Analyse"], ["history", "📈 History"]].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer",
+              fontSize: 13, fontWeight: 600, transition: "all 0.15s",
+              background: tab === key ? "#378ADD" : "transparent",
+              color:      tab === key ? "#fff"    : "#888",
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {/* User pill + logout */}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: "50%",
+              background: roleBg, color: roleColor,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 13, fontWeight: 700
+            }}>
+              {(user?.name || "U").charAt(0).toUpperCase()}
+            </div>
+            <div style={{ lineHeight: 1.2 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
+                {user?.name || "User"}
+              </div>
+              <div style={{
+                fontSize: 11, fontWeight: 500, padding: "1px 6px",
+                borderRadius: 6, display: "inline-block",
+                background: roleBg, color: roleColor
+              }}>
+                {user?.role === "clinician" ? "Clinician" : "Patient"}
+              </div>
+            </div>
+          </div>
+          <button onClick={logout} style={{
+            background: "none", border: "1px solid #e2e8f0", borderRadius: 7,
+            padding: "5px 12px", fontSize: 12, color: "#888", cursor: "pointer"
+          }}>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN APP  (your original logic — completely unchanged)
+// ─────────────────────────────────────────────────────────────
+function MainApp() {
   const [stage, setStage] = useState("upload");
-  const [tab, setTab] = useState("analyse");        // "analyse" | "history"
+  const [tab, setTab] = useState("analyse");
   const [dragOver, setDragOver] = useState(false);
   const [results, setResults] = useState(null);
   const [jobId, setJobId] = useState(null);
@@ -15,7 +251,6 @@ export default function App() {
   const [sessions, setSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Fetch history whenever user switches to history tab
   useEffect(() => {
     if (tab === "history") fetchHistory();
   }, [tab]);
@@ -59,9 +294,9 @@ export default function App() {
     }
   };
 
-  const riskColors = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
+  const riskColors   = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
   const statusColors = { good: "#1D9E75", mild: "#BA7517", flagged: "#E24B4A" };
-  const statusIcons = { good: "✓", mild: "!", flagged: "✕" };
+  const statusIcons  = { good: "✓", mild: "!", flagged: "✕" };
 
   const symmetryData = results ? [
     { name: "Knee", value: parseFloat(results.scores.knee_symmetry_index), fill: results.scores.knee_symmetry_index < 10 ? "#1D9E75" : results.scores.knee_symmetry_index < 20 ? "#BA7517" : "#E24B4A" },
@@ -73,7 +308,6 @@ export default function App() {
     { name: "Right knee", value: parseFloat(results.scores.knee_flexion_range_R), fill: results.scores.knee_flexion_range_R > 50 ? "#1D9E75" : "#E24B4A" },
   ] : [];
 
-  // Trend chart data — oldest first
   const trendData = [...sessions].reverse().map(s => ({
     date:    new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
     risk:    s.risk_score,
@@ -83,37 +317,13 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #eee", padding: "0 2rem" }}>
-        <div style={{ maxWidth: 920, margin: "0 auto", display: "flex", alignItems: "center", height: 60 }}>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.5 }}>GaitScan</span>
-          <span style={{ marginLeft: 10, fontSize: 12, background: "#E6F1FB", color: "#185FA5", padding: "2px 8px", borderRadius: 10, fontWeight: 500 }}>Beta</span>
-
-          {/* Nav tabs */}
-          <div style={{ marginLeft: 32, display: "flex", gap: 4 }}>
-            {[["analyse", "🎥 Analyse"], ["history", "📈 History"]].map(([key, label]) => (
-              <button key={key} onClick={() => setTab(key)} style={{
-                padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                background: tab === key ? "#378ADD" : "transparent",
-                color:      tab === key ? "#fff"    : "#888",
-                transition: "all 0.15s"
-              }}>{label}</button>
-            ))}
-          </div>
-
-          <span style={{ marginLeft: "auto", fontSize: 13, color: "#888" }}>AI Gait Analysis</span>
-        </div>
-      </div>
+      <Navbar tab={tab} setTab={setTab} />
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            ANALYSE TAB
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* ── ANALYSE TAB ─────────────────────────────────────────────────── */}
         {tab === "analyse" && (
           <div>
-
-            {/* Upload */}
             {stage === "upload" && (
               <div>
                 <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
@@ -170,7 +380,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Processing */}
             {stage === "processing" && (
               <div style={{ textAlign: "center", padding: "6rem 2rem" }}>
                 <div style={{ width: 56, height: 56, border: "3px solid #E6F1FB", borderTop: "3px solid #378ADD", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 2rem" }} />
@@ -180,7 +389,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Results */}
             {stage === "results" && results && (
               <div>
                 <button onClick={() => { setStage("upload"); setResults(null); }}
@@ -188,7 +396,6 @@ export default function App() {
                   ← Analyse another video
                 </button>
 
-                {/* Activity detected */}
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 16, display: "flex", alignItems: "center", gap: 20 }}>
                   <div style={{ fontSize: 52 }}>{results.activity.icon}</div>
                   <div style={{ flex: 1 }}>
@@ -202,7 +409,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Risk score */}
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 16 }}>
                   <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Risk Assessment</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 16 }}>
@@ -231,7 +437,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Findings */}
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 16 }}>
                   <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Detailed Findings</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -261,7 +466,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Charts */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                   <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Symmetry Index (%)</div>
@@ -295,7 +499,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Recommendations */}
                 {results.recommendations.length > 0 && (
                   <div style={{ background: "#fffbf0", border: "1px solid #fce8a0", borderRadius: 12, padding: "1.25rem", marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#854F0B", marginBottom: 12 }}>Recommendations</div>
@@ -307,7 +510,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Exercise Prescription */}
                 {results.exercises && results.exercises.length > 0 && (
                   <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginTop: 16 }}>
                     <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
@@ -357,9 +559,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════
-            HISTORY TAB
-        ══════════════════════════════════════════════════════════════════ */}
+        {/* ── HISTORY TAB ─────────────────────────────────────────────────── */}
         {tab === "history" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -382,7 +582,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Trend charts — only show if 2+ sessions */}
             {!loadingHistory && sessions.length >= 2 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
@@ -414,7 +613,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Sessions list */}
             {!loadingHistory && sessions.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {sessions.map((s, i) => (
@@ -423,7 +621,6 @@ export default function App() {
                     padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center"
                   }}>
                     <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                      {/* Session number */}
                       <div style={{
                         width: 36, height: 36, borderRadius: "50%", background: "#E6F1FB",
                         color: "#185FA5", display: "flex", alignItems: "center",
@@ -449,10 +646,7 @@ export default function App() {
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{
-                        fontSize: 22, fontWeight: 800,
-                        color: riskColors[s.risk_color] || "#64748b"
-                      }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: riskColors[s.risk_color] || "#64748b" }}>
                         {s.risk_score}<span style={{ fontSize: 13, fontWeight: 400, color: "#94a3b8" }}>/100</span>
                       </div>
                       <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{s.risk_label}</div>
@@ -470,5 +664,84 @@ export default function App() {
 
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUTH PAGE STYLES
+// ─────────────────────────────────────────────────────────────
+const S = {
+  authPage: {
+    minHeight: "100vh", display: "flex", alignItems: "center",
+    justifyContent: "center", background: "#f7f8fc",
+    fontFamily: "'Inter', -apple-system, sans-serif", padding: "2rem"
+  },
+  authCard: {
+    background: "#fff", borderRadius: 16, padding: "2.5rem",
+    width: "100%", maxWidth: 400,
+    border: "1px solid #eee",
+    display: "flex", flexDirection: "column", gap: 16
+  },
+  authLogo: {
+    fontSize: 22, fontWeight: 700, color: "#1a1a2e",
+    letterSpacing: -0.5, textAlign: "center"
+  },
+  authBeta: {
+    fontSize: 12, background: "#E6F1FB", color: "#185FA5",
+    padding: "2px 8px", borderRadius: 10, fontWeight: 500,
+    textAlign: "center", width: "fit-content", margin: "-8px auto 0"
+  },
+  authHeading: {
+    fontSize: 18, fontWeight: 700, color: "#1a1a2e",
+    margin: "4px 0 0", textAlign: "center"
+  },
+  authError: {
+    background: "#fff0f0", border: "1px solid #fcc",
+    borderRadius: 8, padding: "10px 14px",
+    color: "#c00", fontSize: 13
+  },
+  formGroup: { display: "flex", flexDirection: "column", gap: 6 },
+  label: { fontSize: 13, fontWeight: 600, color: "#444" },
+  input: {
+    padding: "10px 12px", borderRadius: 8,
+    border: "1px solid #e2e8f0", fontSize: 14,
+    outline: "none", color: "#1a1a2e",
+    fontFamily: "inherit"
+  },
+  primaryBtn: {
+    padding: "11px", borderRadius: 8,
+    background: "#378ADD", color: "#fff",
+    border: "none", fontSize: 14, fontWeight: 600,
+    cursor: "pointer", marginTop: 4
+  },
+  switchText: { textAlign: "center", fontSize: 13, color: "#888", margin: 0 },
+  switchLink: { color: "#378ADD", cursor: "pointer", fontWeight: 600 },
+  roleRow: { display: "flex", gap: 10 },
+  roleActive: {
+    flex: 1, padding: "10px 0", borderRadius: 8,
+    background: "#378ADD", color: "#fff",
+    border: "none", cursor: "pointer",
+    display: "flex", flexDirection: "column",
+    alignItems: "center", gap: 4
+  },
+  roleInactive: {
+    flex: 1, padding: "10px 0", borderRadius: 8,
+    background: "#f8fafc", color: "#64748b",
+    border: "1px solid #e2e8f0", cursor: "pointer",
+    display: "flex", flexDirection: "column",
+    alignItems: "center", gap: 4
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// ROOT EXPORT
+// ─────────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate>
+        <MainApp />
+      </AuthGate>
+    </AuthProvider>
   );
 }
