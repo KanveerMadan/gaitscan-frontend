@@ -773,7 +773,7 @@ const S = {
   },
 };
 function ClinicianDashboard() {
-  const { user } = useAuth();
+  const {} = useAuth();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inviteCode, setInviteCode] = useState(null);
