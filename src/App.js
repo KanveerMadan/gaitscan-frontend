@@ -257,16 +257,6 @@ function MainApp() {
   const [sessions, setSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Clinicians go straight to their dashboard
-  if (user?.role === "clinician") {
-    return (
-      <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
-        <Navbar tab="dashboard" setTab={() => {}} />
-        <ClinicianDashboard />
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (tab === "history") fetchHistory();
   }, [tab]);
@@ -274,7 +264,7 @@ function MainApp() {
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
-      const res = await axios.get(`${API}/sessions`);
+      const res = await axios.get(`⁠${API}/sessions`);
       setSessions(res.data);
     } catch {
       setSessions([]);
@@ -325,15 +315,23 @@ function MainApp() {
   ] : [];
 
   const trendData = [...sessions].reverse().map(s => ({
-    date:    new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-    risk:    s.risk_score,
+    date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+    risk: s.risk_score,
     knee_si: s.knee_si,
   }));
+  // Clinicians go straight to their dashboard
+  if (user?.role === "clinician") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        <Navbar tab="dashboard" setTab={() => {}} />
+        <ClinicianDashboard />
+      </div>
+    );
+  }
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
-
-      <Navbar tab={tab} setTab={setTab} />
+    return (
+      <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
+        <Navbar tab={tab} setTab={setTab} />
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
@@ -578,7 +576,7 @@ function MainApp() {
         {/* ── HISTORY TAB ─────────────────────────────────────────────────── */}
         {tab === "history" && (
           <div>
-            <JoinClinicianCard />   
+            {/* Removed JoinClinicianCard */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#1a1a2e" }}>Session History</h2>
               <button onClick={fetchHistory} style={{
@@ -586,6 +584,7 @@ function MainApp() {
                 padding: "6px 14px", fontSize: 13, cursor: "pointer", color: "#555"
               }}>↻ Refresh</button>
             </div>
+
 
             {loadingHistory && (
               <div style={{ textAlign: "center", padding: "4rem", color: "#94a3b8" }}>Loading history...</div>
@@ -683,6 +682,30 @@ function MainApp() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ─────────────────────────────────────────────────────────────
 // AUTH PAGE STYLES
