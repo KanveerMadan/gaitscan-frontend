@@ -750,7 +750,6 @@ const S = {
     alignItems: "center", gap: 4
   },
 };
-// ── Clinician Dashboard ──────────────────────────────────────────────────
 function ClinicianDashboard() {
   const { user } = useAuth();
   const [patients, setPatients] = useState([]);
@@ -760,6 +759,8 @@ function ClinicianDashboard() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientSessions, setPatientSessions] = useState(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
+
+  const riskColors = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
 
   useEffect(() => { fetchPatients(); }, []);
 
@@ -791,18 +792,17 @@ function ClinicianDashboard() {
     setLoadingSessions(false);
   };
 
-  const riskColors = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
+  // trend data derived from patientSessions
+  const trendData = patientSessions?.sessions
+    ? [...patientSessions.sessions].reverse().map(s => ({
+        date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+        risk: s.risk_score,
+        knee_si: s.knee_si
+      }))
+    : [];
 
-  // ── Patient detail view ──
+  // ── Patient detail view ──────────────────────────────────────────────
   if (selectedPatient) {
-    const trendData = patientSessions?.sessions
-      ? [...patientSessions.sessions].reverse().map(s => ({
-          date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-          risk: s.risk_score,
-          knee_si: s.knee_si
-        }))
-      : [];
-
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
         <button onClick={() => { setSelectedPatient(null); setPatientSessions(null); }}
@@ -859,7 +859,7 @@ function ClinicianDashboard() {
 
         {!loadingSessions && patientSessions?.sessions?.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientSessions.sessions.map((s, i) => (
+            {patientSessions.sessions.map((s) => (
               <div key={s.id} style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: "#1a1a2e", marginBottom: 3 }}>{s.activity}</div>
@@ -897,11 +897,9 @@ function ClinicianDashboard() {
     );
   }
 
-  // ── Main dashboard view ──
+  // ── Main dashboard view ──────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
-
-      {/* Header + invite button */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: "#1a1a2e" }}>Your Patients</h2>
@@ -915,15 +913,14 @@ function ClinicianDashboard() {
         </button>
       </div>
 
-      {/* Invite code card */}
       {inviteCode && (
         <div style={{ background: "#E6F1FB", border: "1px solid #B5D4F4", borderRadius: 14, padding: "1.25rem 1.5rem", marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 12, color: "#185FA5", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Invite Code — share with your patient</div>
             <div style={{ fontSize: 36, fontWeight: 800, color: "#0C447C", letterSpacing: 6 }}>{inviteCode}</div>
-            <div style={{ fontSize: 12, color: "#378ADD", marginTop: 6 }}>Patient enters this code in their app under Profile → Join Clinician</div>
+            <div style={{ fontSize: 12, color: "#378ADD", marginTop: 6 }}>Patient enters this in History tab → Join Clinician</div>
           </div>
-          <button onClick={() => { navigator.clipboard.writeText(inviteCode); }}
+          <button onClick={() => navigator.clipboard.writeText(inviteCode)}
             style={{ background: "#fff", border: "1px solid #B5D4F4", borderRadius: 8, padding: "8px 16px", fontSize: 13, color: "#185FA5", cursor: "pointer", fontWeight: 600 }}>
             Copy
           </button>
@@ -944,10 +941,9 @@ function ClinicianDashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {patients.map(p => (
             <div key={p.patient_id} onClick={() => viewPatient(p)}
-              style={{ background: "#fff", border: `1px solid ${p.flag ? "#ffd0d0" : "#eee"}`, borderRadius: 14, padding: "18px 20px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "box-shadow 0.15s" }}
+              style={{ background: "#fff", border: `1px solid ${p.flag ? "#ffd0d0" : "#eee"}`, borderRadius: 14, padding: "18px 20px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
-
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
@@ -970,7 +966,6 @@ function ClinicianDashboard() {
                   </div>
                 </div>
               </div>
-
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 {p.trend && p.trend.length >= 2 && (
                   <div style={{ width: 100, height: 40 }}>
@@ -999,49 +994,6 @@ function ClinicianDashboard() {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Patient: join clinician via code ─────────────────────────────────────
-function JoinClinicianCard() {
-  const [code, setCode] = useState("");
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleJoin = async () => {
-    if (code.length !== 6) { setStatus({ type: "error", msg: "Code must be 6 characters" }); return; }
-    setLoading(true); setStatus(null);
-    try {
-      const res = await axios.post(`${API}/patient/join`, { code });
-      setStatus({ type: "success", msg: res.data.message });
-      setCode("");
-    } catch (e) {
-      setStatus({ type: "error", msg: e.response?.data?.detail || "Failed to join" });
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 20 }}>
-      <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Join a Clinician</div>
-      <p style={{ fontSize: 13, color: "#666", marginBottom: 16, lineHeight: 1.6 }}>
-        If your physiotherapist or doctor uses GaitScan, enter their invite code below to share your sessions with them.
-      </p>
-      {status && (
-        <div style={{ background: status.type === "success" ? "#f6fdf9" : "#fff0f0", border: `1px solid ${status.type === "success" ? "#d0f0e0" : "#fcc"}`, borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: status.type === "success" ? "#1D9E75" : "#c00" }}>
-          {status.msg}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 10 }}>
-        <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} maxLength={6}
-          placeholder="Enter 6-digit code"
-          style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 15, fontFamily: "monospace", letterSpacing: 3, textTransform: "uppercase" }} />
-        <button onClick={handleJoin} disabled={loading}
-          style={{ background: "#378ADD", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-          {loading ? "Joining..." : "Join"}
-        </button>
-      </div>
     </div>
   );
 }
