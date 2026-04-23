@@ -247,6 +247,15 @@ function Navbar({ tab, setTab }) {
 // ─────────────────────────────────────────────────────────────
 function MainApp() {
   const { user } = useAuth();
+  const [stage, setStage] = useState("upload");
+  const [tab, setTab] = useState("analyse");
+  const [dragOver, setDragOver] = useState(false);
+  const [results, setResults] = useState(null);
+  const [jobId, setJobId] = useState(null);
+  const [error, setError] = useState(null);
+  const [progress, setProgress] = useState("");
+  const [sessions, setSessions] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Clinicians go straight to their dashboard
   if (user?.role === "clinician") {
@@ -257,16 +266,6 @@ function MainApp() {
       </div>
     );
   }
-
-  const [stage, setStage] = useState("upload");
-  const [tab, setTab] = useState("analyse");
-  const [dragOver, setDragOver] = useState(false);
-  const [results, setResults] = useState(null);
-  const [jobId, setJobId] = useState(null);
-  const [error, setError] = useState(null);
-  const [progress, setProgress] = useState("");
-  const [sessions, setSessions] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (tab === "history") fetchHistory();
