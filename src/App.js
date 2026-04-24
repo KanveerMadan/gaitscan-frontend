@@ -262,15 +262,15 @@ function MainApp() {
   }, [tab]);
 
   const fetchHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const res = await axios.get(`⁠${API}/sessions`);
-      setSessions(res.data);
-    } catch {
-      setSessions([]);
-    }
-    setLoadingHistory(false);
-  };
+  setLoadingHistory(true);
+  try {
+    const res = await axios.get(`${API}/sessions`);
+    setSessions(res.data || []);
+  } catch {
+    setSessions([]);  // 🔥 fallback
+  }
+  setLoadingHistory(false);
+};
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -590,7 +590,7 @@ function MainApp() {
               <div style={{ textAlign: "center", padding: "4rem", color: "#94a3b8" }}>Loading history...</div>
             )}
 
-            {!loadingHistory && sessions.length === 0 && (
+            {!loadingHistory && (sessions || []).length === 0 && (
               <div style={{ textAlign: "center", padding: "5rem 2rem", color: "#94a3b8" }}>
                 <div style={{ fontSize: 52, marginBottom: 16 }}>📭</div>
                 <p style={{ fontSize: 16 }}>No sessions yet.</p>
@@ -598,7 +598,7 @@ function MainApp() {
               </div>
             )}
 
-            {!loadingHistory && sessions.length >= 2 && (
+            {!loadingHistory && (sessions || []).length >= 2 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Risk Score Over Time</div>
@@ -629,9 +629,9 @@ function MainApp() {
               </div>
             )}
 
-            {!loadingHistory && sessions.length > 0 && (
+            {!loadingHistory && (sessions || []).length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {sessions.map((s, i) => (
+                {(sessions || []).map((s, i) => ( 
                   <div key={s.id} style={{
                     background: "#fff", border: "1px solid #eee", borderRadius: 12,
                     padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center"
@@ -649,7 +649,7 @@ function MainApp() {
                           {s.patient_name} — {s.activity}
                         </div>
                         <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                          {new Date(s.created_at).toLocaleString("en-GB", {
+                          {s.created_at && new Date(s.created_at).toLocaleString("en-GB", {
                             day: "numeric", month: "short", year: "numeric",
                             hour: "2-digit", minute: "2-digit"
                           })}
@@ -880,7 +880,7 @@ function ClinicianDashboard() {
 
         {!loadingSessions && patientSessions?.sessions?.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientSessions.sessions.map((s) => (
+            {patientSessions.sessions || [].map((s) => (
               <div key={s.id} style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: "#1a1a2e", marginBottom: 3 }}>{s.activity}</div>
