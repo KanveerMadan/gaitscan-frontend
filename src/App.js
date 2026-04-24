@@ -19,14 +19,6 @@ function AuthProvider({ children }) {
     catch { return null; }
   });
 
-  useEffect(() => {
-    if (user) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [user]);
-
   const login = (userData) => {
     localStorage.setItem("gaitscan_user", JSON.stringify(userData));
     setUser(userData);
@@ -34,8 +26,50 @@ function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem("gaitscan_user");
+    localStorage.removeItem("gaitscan_creds");
     setUser(null);
   };
+
+  useEffect(() => {
+    if (user) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
+    } else {
+      delete axios.defaults.headers.common["Authorization"];
+    }
+
+    // Intercept 401s — auto re-login using stored credentials
+    const interceptor = axios.interceptors.response.use(
+      res => res,
+      async err => {
+        if (err.response?.status === 401) {
+          const creds = JSON.parse(localStorage.getItem("gaitscan_creds") || "null");
+          if (creds) {
+            try {
+              const res = await axios.post(`${API}/auth/login`, creds);
+              const newUser = {
+                token: res.data.access_token,
+                role: res.data.role,
+                name: res.data.full_name
+              };
+              localStorage.setItem("gaitscan_user", JSON.stringify(newUser));
+              setUser(newUser);
+              axios.defaults.headers.common["Authorization"] = `Bearer ${newUser.token}`;
+              // retry original request with new token
+              err.config.headers["Authorization"] = `Bearer ${newUser.token}`;
+              return axios(err.config);
+            } catch {
+              logout();
+            }
+          } else {
+            logout();
+          }
+        }
+        return Promise.reject(err);
+      }
+    );
+
+    return () => axios.interceptors.response.eject(interceptor);
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
@@ -54,16 +88,18 @@ function LoginPage({ onSwitch }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!form.email || !form.password) { setError("Please fill in all fields."); return; }
-    setLoading(true); setError("");
-    try {
-      const res = await axios.post(`${API}/auth/login`, form);
-      login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
-    } catch (e) {
-      setError(e.response?.data?.detail || "Login failed. Please try again.");
-    }
-    setLoading(false);
-  };
+  setLoading(true); setError("");
+  try {
+    const res = await axios.post(`${API}/auth/login`, form);
+    // Save credentials for auto-refresh
+    localStorage.setItem("gaitscan_creds", JSON.stringify(form));
+    login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
+  } catch (e) {
+    setError(e.response?.data?.detail || "Login failed. Please try again.");
+  }
+  setLoading(false);
+};
+
 
   return (
     <div style={S.authPage}>
@@ -103,17 +139,17 @@ function RegisterPage({ onSwitch }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!form.email || !form.password || !form.full_name) { setError("Please fill in all fields."); return; }
-    if (form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
-    setLoading(true); setError("");
-    try {
-      const res = await axios.post(`${API}/auth/register`, form);
-      login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
-    } catch (e) {
-      setError(e.response?.data?.detail || "Registration failed. Please try again.");
-    }
-    setLoading(false);
-  };
+  setLoading(true); setError("");
+  try {
+    const res = await axios.post(`${API}/auth/register`, form);
+    // Save credentials for auto-refresh
+    localStorage.setItem("gaitscan_creds", JSON.stringify({ email: form.email, password: form.password }));
+    login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
+  } catch (e) {
+    setError(e.response?.data?.detail || "Registration failed. Please try again.");
+  }
+  setLoading(false);
+};
 
   return (
     <div style={S.authPage}>
@@ -576,7 +612,9 @@ function MainApp() {
         {/* ── HISTORY TAB ─────────────────────────────────────────────────── */}
         {tab === "history" && (
           <div>
-            {/* Removed JoinClinicianCard */}
+            {/* ── Join a Clinician ── */}
+            <JoinClinicianCard />
+            {/* ── existing heading row ── */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#1a1a2e" }}>Session History</h2>
               <button onClick={fetchHistory} style={{
@@ -1015,6 +1053,63 @@ function ClinicianDashboard() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+function JoinClinicianCard() {
+  const [code, setCode] = useState("");
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleJoin = async () => {
+    if (code.length !== 6) { setStatus({ type: "error", msg: "Code must be 6 characters" }); return; }
+    setLoading(true); setStatus(null);
+    try {
+      const res = await axios.post(`${API}/patient/join`, { code });
+      setStatus({ type: "success", msg: res.data.message });
+      setCode("");
+    } catch (e) {
+      setStatus({ type: "error", msg: e.response?.data?.detail || "Failed to join" });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 24 }}>
+      <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Join a Clinician</div>
+      <p style={{ fontSize: 13, color: "#666", marginBottom: 16, lineHeight: 1.6 }}>
+        If your physiotherapist or doctor uses GaitScan, enter their invite code below to share your sessions with them.
+      </p>
+      {status && (
+        <div style={{
+          background: status.type === "success" ? "#f6fdf9" : "#fff0f0",
+          border: `1px solid ${status.type === "success" ? "#d0f0e0" : "#fcc"}`,
+          borderRadius: 8, padding: "10px 14px", marginBottom: 12,
+          fontSize: 13, color: status.type === "success" ? "#1D9E75" : "#c00"
+        }}>
+          {status.msg}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10 }}>
+        <input
+          value={code}
+          onChange={e => setCode(e.target.value.toUpperCase())}
+          maxLength={6}
+          placeholder="Enter 6-digit code"
+          style={{
+            flex: 1, padding: "10px 14px", borderRadius: 8,
+            border: "1px solid #e2e8f0", fontSize: 15,
+            fontFamily: "monospace", letterSpacing: 3, textTransform: "uppercase"
+          }}
+        />
+        <button onClick={handleJoin} disabled={loading} style={{
+          background: "#378ADD", color: "#fff", border: "none",
+          borderRadius: 8, padding: "10px 20px", fontSize: 14,
+          fontWeight: 600, cursor: "pointer"
+        }}>
+          {loading ? "Joining..." : "Join"}
+        </button>
+      </div>
     </div>
   );
 }
