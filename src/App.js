@@ -321,6 +321,7 @@ function MainApp() {
     form.append("video", file);
     try {
       setProgress("Extracting body landmarks from every frame...");
+      console.log("Token being sent:", axios.defaults.headers.common["Authorization"]);
       const res = await axios.post(`${API}/analyze`, form, {
       onUploadProgress: (e) => {
       if (e.loaded === e.total) setProgress("Classifying activity and analysing gait...");
