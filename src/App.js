@@ -31,45 +31,12 @@ function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    if (user) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-
-    // Intercept 401s — auto re-login using stored credentials
-    const interceptor = axios.interceptors.response.use(
-      res => res,
-      async err => {
-        if (err.response?.status === 401) {
-          const creds = JSON.parse(localStorage.getItem("gaitscan_creds") || "null");
-          if (creds) {
-            try {
-              const res = await axios.post(`${API}/auth/login`, creds);
-              const newUser = {
-                token: res.data.access_token,
-                role: res.data.role,
-                name: res.data.full_name
-              };
-              localStorage.setItem("gaitscan_user", JSON.stringify(newUser));
-              setUser(newUser);
-              axios.defaults.headers.common["Authorization"] = `Bearer ${newUser.token}`;
-              // retry original request with new token
-              err.config.headers["Authorization"] = `Bearer ${newUser.token}`;
-              return axios(err.config);
-            } catch {
-              logout();
-            }
-          } else {
-            logout();
-          }
-        }
-        return Promise.reject(err);
-      }
-    );
-
-    return () => axios.interceptors.response.eject(interceptor);
-  }, [user]);
+  if (user) {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
+  } else {
+    delete axios.defaults.headers.common["Authorization"];
+  }
+}, [user]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
