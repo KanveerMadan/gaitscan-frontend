@@ -322,11 +322,10 @@ function MainApp() {
     try {
       setProgress("Extracting body landmarks from every frame...");
       const res = await axios.post(`${API}/analyze`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (e) => {
-          if (e.loaded === e.total) setProgress("Classifying activity and analysing gait...");
-        }
-      });
+      onUploadProgress: (e) => {
+      if (e.loaded === e.total) setProgress("Classifying activity and analysing gait...");
+      }
+    });
       setResults(res.data);
       setJobId(res.data.job_id);
       setStage("results");
