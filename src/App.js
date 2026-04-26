@@ -892,7 +892,7 @@ function ClinicianDashboard() {
 
         {!loadingSessions && patientSessions?.sessions?.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {patientSessions.sessions || [].map((s) => (
+            {(patientSessions.sessions || []).map((s) => (
               <div key={s.id} style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: "#1a1a2e", marginBottom: 3 }}>{s.activity}</div>
