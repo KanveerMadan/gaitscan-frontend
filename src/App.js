@@ -791,18 +791,23 @@ function ClinicianDashboard() {
   useEffect(() => { fetchPatients(); }, []);
 
   const fetchPatients = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API}/clinician/patients`);
+  setLoading(true);
+  try {
+    const token = JSON.parse(localStorage.getItem("gaitscan_user"))?.token;
+    const res = await axios.get(`${API}/clinician/patients`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
       setPatients(res.data);
     } catch { setPatients([]); }
     setLoading(false);
   };
-
   const generateInvite = async () => {
     setGeneratingCode(true);
     try {
-      const res = await axios.post(`${API}/clinician/invite`);
+      const token = JSON.parse(localStorage.getItem("gaitscan_user"))?.token;
+      const res = await axios.post(`${API}/clinician/invite`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setInviteCode(res.data.code);
     } catch {}
     setGeneratingCode(false);
@@ -812,12 +817,14 @@ function ClinicianDashboard() {
     setSelectedPatient(patient);
     setLoadingSessions(true);
     try {
-      const res = await axios.get(`${API}/clinician/patients/${patient.patient_id}/sessions`);
+      const token = JSON.parse(localStorage.getItem("gaitscan_user"))?.token;
+      const res = await axios.get(`${API}/clinician/patients/${patient.patient_id}/sessions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setPatientSessions(res.data);
     } catch {}
     setLoadingSessions(false);
   };
-
   // trend data derived from patientSessions
   const trendData = patientSessions?.sessions
     ? [...patientSessions.sessions].reverse().map(s => ({
