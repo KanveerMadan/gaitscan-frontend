@@ -53,6 +53,7 @@ function LoginPage({ onSwitch }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("Clinical");
 
   const handleSubmit = async () => {
   setLoading(true); setError("");
@@ -286,6 +287,7 @@ function MainApp() {
     setProgress("Uploading video...");
     const form = new FormData();
     form.append("video", file);
+    form.append("mode", mode);
     try {
       setProgress("Extracting body landmarks from every frame...");
       console.log("Token being sent:", axios.defaults.headers.common["Authorization"]);
@@ -378,8 +380,31 @@ function MainApp() {
                   <p style={{ fontSize: 12, color: "#bbb", marginTop: 16 }}>Supports .mp4 .mov .avi · Phone, CCTV, sports footage · Any angle</p>
                   <input id="file-input" type="file" accept=".mp4,.mov,.avi" style={{ display: "none" }}
                     onChange={(e) => handleFile(e.target.files[0])} />
-                </div>
-
+                  </div>
+                    <div style={{ marginTop: 28, background: "#fff", border: "1px solid #eee", borderRadius: 14, padding: "1.25rem" }}>
+                    <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                      Analysis Mode
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+                      {[
+                        { key: "Clinical", icon: "🩺", label: "Clinical",  desc: "Standard physiotherapy" },
+                        { key: "Runner",   icon: "🏃", label: "Runner",    desc: "Performance & injury prevention" },
+                        { key: "Athlete",  icon: "⚡", label: "Athlete",   desc: "Peak biomechanical efficiency" },
+                        { key: "Elderly",  icon: "🧓", label: "Elderly",   desc: "Fall risk & stability" },
+                      ].map(({ key, icon, label, desc }) => (
+                        <button key={key} onClick={() => setMode(key)} style={{
+                          padding: "12px 8px", borderRadius: 10, cursor: "pointer", textAlign: "center",
+                          border: mode === key ? "2px solid #378ADD" : "1px solid #e2e8f0",
+                          background: mode === key ? "#E6F1FB" : "#f8fafc",
+                          transition: "all 0.15s"
+                        }}>
+                          <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: mode === key ? "#185FA5" : "#333" }}>{label}</div>
+                          <div style={{ fontSize: 11, color: "#999", marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginTop: 24 }}>
                   {[
                     ["🚶",  "Walking",       "Normal pace"],
@@ -419,6 +444,12 @@ function MainApp() {
                     <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Activity detected</div>
                     <div style={{ fontSize: 26, fontWeight: 700, color: "#1a1a2e" }}>{results.activity.activity}</div>
                     <div style={{ fontSize: 13, color: "#666", marginTop: 4, lineHeight: 1.5 }}>{results.activity.description}</div>
+                    {results.mode && (
+                      <div style={{ marginTop: 8, display: "inline-block", fontSize: 11, fontWeight: 600,
+                        background: "#E6F1FB", color: "#185FA5", padding: "3px 10px", borderRadius: 10 }}>
+                        {results.mode} Mode — {results.mode_description}
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign: "center", background: "#f7f8fc", borderRadius: 12, padding: "12px 20px" }}>
                     <div style={{ fontSize: 11, color: "#aaa", marginBottom: 4 }}>Confidence</div>
