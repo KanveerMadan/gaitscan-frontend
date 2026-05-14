@@ -53,7 +53,6 @@ function LoginPage({ onSwitch }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("Clinical");
 
   const handleSubmit = async () => {
   setLoading(true); setError("");
@@ -260,6 +259,7 @@ function MainApp() {
   const [progress, setProgress] = useState("");
   const [sessions, setSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [mode, setMode] = useState("Clinical");
 
   useEffect(() => {
     if (tab === "history") fetchHistory();
