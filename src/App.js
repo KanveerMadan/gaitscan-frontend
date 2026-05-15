@@ -7,9 +7,6 @@ import {
 
 const API = "https://gaitscan.onrender.com";
 
-// ─────────────────────────────────────────────────────────────
-// AUTH CONTEXT
-// ─────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
 function useAuth() { return useContext(AuthContext); }
 
@@ -45,9 +42,6 @@ function AuthProvider({ children }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// AUTH PAGES
-// ─────────────────────────────────────────────────────────────
 function LoginPage({ onSwitch }) {
   const { login } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -58,7 +52,7 @@ function LoginPage({ onSwitch }) {
   setLoading(true); setError("");
   try {
     const res = await axios.post(`${API}/auth/login`, form);
-    // Save credentials for auto-refresh
+    
     localStorage.setItem("gaitscan_creds", JSON.stringify(form));
     login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
   } catch (e) {
@@ -109,7 +103,7 @@ function RegisterPage({ onSwitch }) {
   setLoading(true); setError("");
   try {
     const res = await axios.post(`${API}/auth/register`, form);
-    // Save credentials for auto-refresh
+    
     localStorage.setItem("gaitscan_creds", JSON.stringify({ email: form.email, password: form.password }));
     login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
   } catch (e) {
@@ -178,9 +172,7 @@ function AuthGate({ children }) {
   return children;
 }
 
-// ─────────────────────────────────────────────────────────────
-// NAVBAR  (replaces the old header)
-// ─────────────────────────────────────────────────────────────
+
 function Navbar({ tab, setTab }) {
   const { user, logout } = useAuth();
   const roleColor = user?.role === "clinician" ? "#185FA5" : "#0F6E56";
@@ -209,7 +201,7 @@ function Navbar({ tab, setTab }) {
             ))
           )}
         </div>
-        {/* User pill + logout */}
+        
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
@@ -245,9 +237,6 @@ function Navbar({ tab, setTab }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// MAIN APP  (your original logic — completely unchanged)
-// ─────────────────────────────────────────────────────────────
 function MainApp() {
   const { user } = useAuth();
   const [stage, setStage] = useState("upload");
@@ -324,7 +313,6 @@ function MainApp() {
     risk: s.risk_score,
     knee_si: s.knee_si,
   }));
-  // Clinicians go straight to their dashboard
   if (user?.role === "clinician") {
     return (
       <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
@@ -340,7 +328,6 @@ function MainApp() {
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
-        {/* ── ANALYSE TAB ─────────────────────────────────────────────────── */}
         {tab === "analyse" && (
           <div>
             {stage === "upload" && (
@@ -363,10 +350,10 @@ function MainApp() {
                   </div>
                 )}
 
-                {/* ── Sidebar layout ── */}
+                
                 <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
 
-                  {/* LEFT: Mode sidebar */}
+                  
                   <div style={{ width: 200, flexShrink: 0, background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1rem", display: "flex", flexDirection: "column", gap: 8 }}>
                     <div style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, paddingLeft: 4 }}>
                       Analysis Mode
@@ -409,7 +396,7 @@ function MainApp() {
                     })}
                   </div>
 
-                  {/* RIGHT: Drop zone */}
+                  
                   <div style={{ flex: 1 }}>
                     <div
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -434,7 +421,7 @@ function MainApp() {
                     </div>
                   </div>
 
-                </div>{/* end sidebar layout */}
+                </div>
               </div>
             )}
 
@@ -623,12 +610,9 @@ function MainApp() {
           </div>
         )}
 
-        {/* ── HISTORY TAB ─────────────────────────────────────────────────── */}
         {tab === "history" && (
           <div>
-            {/* ── Join a Clinician ── */}
             <JoinClinicianCard />
-            {/* ── existing heading row ── */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#1a1a2e" }}>Session History</h2>
               <button onClick={fetchHistory} style={{
@@ -735,33 +719,6 @@ function MainApp() {
   );
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ─────────────────────────────────────────────────────────────
-// AUTH PAGE STYLES
-// ─────────────────────────────────────────────────────────────
 const S = {
   authPage: {
     minHeight: "100vh", display: "flex", alignItems: "center",
@@ -872,7 +829,7 @@ function ClinicianDashboard() {
     } catch {}
     setLoadingSessions(false);
   };
-  // trend data derived from patientSessions
+  
   const trendData = patientSessions?.sessions
     ? [...patientSessions.sessions].reverse().map(s => ({
         date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
@@ -881,7 +838,7 @@ function ClinicianDashboard() {
       }))
     : [];
 
-  // ── Patient detail view ──────────────────────────────────────────────
+  
   if (selectedPatient) {
     return (
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
@@ -977,7 +934,7 @@ function ClinicianDashboard() {
     );
   }
 
-  // ── Main dashboard view ──────────────────────────────────────────────
+  
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
@@ -1134,9 +1091,7 @@ function JoinClinicianCard() {
     </div>
   );
 }
-// ─────────────────────────────────────────────────────────────
-// ROOT EXPORT
-// ─────────────────────────────────────────────────────────────
+
 export default function App() {
   return (
     <AuthProvider>
