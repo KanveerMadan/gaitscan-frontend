@@ -345,12 +345,15 @@ function MainApp() {
           <div>
             {stage === "upload" && (
               <div>
-                <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-                  <h1 style={{ fontSize: 34, fontWeight: 700, color: "#1a1a2e", marginBottom: 12 }}>
+                <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+                  <h1 style={{ fontSize: 30, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>
                     Upload a walking or running video
                   </h1>
-                  <p style={{ fontSize: 15, color: "#666", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
-                    GaitScan detects whether you're walking, running, or limping — then gives you a plain-English clinical assessment.
+                  <p style={{ fontSize: 14, color: "#666", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
+                    {mode === "Clinical"  && "Standard physiotherapy assessment — suitable for all users."}
+                    {mode === "Runner"    && "Performance-focused — tighter symmetry and higher cadence targets."}
+                    {mode === "Athlete"   && "Strictest thresholds — flags even minor asymmetries for peak efficiency."}
+                    {mode === "Elderly"   && "Fall-risk focused — lenient thresholds, prioritising stability and safety."}
                   </p>
                 </div>
 
@@ -360,65 +363,78 @@ function MainApp() {
                   </div>
                 )}
 
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
-                  onClick={() => document.getElementById("file-input").click()}
-                  style={{
-                    border: `2px dashed ${dragOver ? "#378ADD" : "#ddd"}`,
-                    borderRadius: 16, padding: "4rem 2rem", textAlign: "center",
-                    cursor: "pointer", background: dragOver ? "#f0f7ff" : "#fff", transition: "all 0.2s"
-                  }}
-                >
-                  <div style={{ fontSize: 48, marginBottom: 16 }}>🎥</div>
-                  <p style={{ fontSize: 18, fontWeight: 600, color: "#333", marginBottom: 8 }}>Drop your video here</p>
-                  <p style={{ fontSize: 14, color: "#999", marginBottom: 20 }}>or click to browse</p>
-                  <div style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "10px 24px", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
-                    Choose video
-                  </div>
-                  <p style={{ fontSize: 12, color: "#bbb", marginTop: 16 }}>Supports .mp4 .mov .avi · Phone, CCTV, sports footage · Any angle</p>
-                  <input id="file-input" type="file" accept=".mp4,.mov,.avi" style={{ display: "none" }}
-                    onChange={(e) => handleFile(e.target.files[0])} />
-                  </div>
-                    <div style={{ marginTop: 28, background: "#fff", border: "1px solid #eee", borderRadius: 14, padding: "1.25rem" }}>
-                    <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                {/* ── Sidebar layout ── */}
+                <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+                  {/* LEFT: Mode sidebar */}
+                  <div style={{ width: 200, flexShrink: 0, background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1rem", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4, paddingLeft: 4 }}>
                       Analysis Mode
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-                      {[
-                        { key: "Clinical", icon: "🩺", label: "Clinical",  desc: "Standard physiotherapy" },
-                        { key: "Runner",   icon: "🏃", label: "Runner",    desc: "Performance & injury prevention" },
-                        { key: "Athlete",  icon: "⚡", label: "Athlete",   desc: "Peak biomechanical efficiency" },
-                        { key: "Elderly",  icon: "🧓", label: "Elderly",   desc: "Fall risk & stability" },
-                      ].map(({ key, icon, label, desc }) => (
+                    {[
+                      { key: "Clinical", icon: "🩺", label: "Clinical",  desc: "Standard physio",         bullets: ["Balanced thresholds", "All activity types", "General rehab"] },
+                      { key: "Runner",   icon: "🏃", label: "Runner",    desc: "Performance & injury",    bullets: ["Tighter symmetry", "Higher cadence targets", "Running-specific drills"] },
+                      { key: "Athlete",  icon: "⚡", label: "Athlete",   desc: "Peak efficiency",         bullets: ["Strictest thresholds", "Flags minor asymmetry", "Advanced exercises"] },
+                      { key: "Elderly",  icon: "🧓", label: "Elderly",   desc: "Fall risk & stability",   bullets: ["Lenient thresholds", "Fall-risk focus", "Low-impact exercises"] },
+                    ].map(({ key, icon, label, desc, bullets }) => {
+                      const isSelected = mode === key;
+                      return (
                         <button key={key} onClick={() => setMode(key)} style={{
-                          padding: "12px 8px", borderRadius: 10, cursor: "pointer", textAlign: "center",
-                          border: mode === key ? "2px solid #378ADD" : "1px solid #e2e8f0",
-                          background: mode === key ? "#E6F1FB" : "#f8fafc",
-                          transition: "all 0.15s"
+                          width: "100%", textAlign: "left", cursor: "pointer",
+                          borderRadius: 10, padding: "10px 12px",
+                          border: isSelected ? "2px solid #378ADD" : "1px solid #e8ecf0",
+                          background: isSelected ? "#EBF4FF" : "#f8fafc",
+                          borderLeft: isSelected ? "4px solid #378ADD" : "4px solid transparent",
+                          transition: "all 0.15s",
                         }}>
-                          <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: mode === key ? "#185FA5" : "#333" }}>{label}</div>
-                          <div style={{ fontSize: 11, color: "#999", marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: isSelected ? 8 : 0 }}>
+                            <span style={{ fontSize: 18 }}>{icon}</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? "#185FA5" : "#333", lineHeight: 1.2 }}>
+                                {label}
+                                {isSelected && <span style={{ marginLeft: 6, fontSize: 10, background: "#378ADD", color: "#fff", padding: "1px 6px", borderRadius: 6 }}>✓</span>}
+                              </div>
+                              <div style={{ fontSize: 11, color: isSelected ? "#378ADD" : "#999", marginTop: 1 }}>{desc}</div>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 3 }}>
+                              {bullets.map(b => (
+                                <li key={b} style={{ fontSize: 11, color: "#185FA5", lineHeight: 1.4 }}>{b}</li>
+                              ))}
+                            </ul>
+                          )}
                         </button>
-                      ))}
+                      );
+                    })}
+                  </div>
+
+                  {/* RIGHT: Drop zone */}
+                  <div style={{ flex: 1 }}>
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
+                      onClick={() => document.getElementById("file-input").click()}
+                      style={{
+                        border: `2px dashed ${dragOver ? "#378ADD" : "#ddd"}`,
+                        borderRadius: 16, padding: "4rem 2rem", textAlign: "center",
+                        cursor: "pointer", background: dragOver ? "#f0f7ff" : "#fff", transition: "all 0.2s"
+                      }}
+                    >
+                      <div style={{ fontSize: 48, marginBottom: 16 }}>🎥</div>
+                      <p style={{ fontSize: 18, fontWeight: 600, color: "#333", marginBottom: 8 }}>Drop your video here</p>
+                      <p style={{ fontSize: 14, color: "#999", marginBottom: 20 }}>or click to browse</p>
+                      <div style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "10px 24px", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
+                        Choose video
+                      </div>
+                      <p style={{ fontSize: 12, color: "#bbb", marginTop: 16 }}>Supports .mp4 .mov .avi · Phone, CCTV, sports footage · Any angle</p>
+                      <input id="file-input" type="file" accept=".mp4,.mov,.avi" style={{ display: "none" }}
+                        onChange={(e) => handleFile(e.target.files[0])} />
                     </div>
                   </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginTop: 24 }}>
-                  {[
-                    ["🚶",  "Walking",       "Normal pace"],
-                    ["🚶‍♂️", "Brisk walking", "Fast pace"],
-                    ["🏃",  "Running",        "Jogging or sprinting"],
-                    ["🦿",  "Limping",        "Injury or pain patterns"]
-                  ].map(([icon, title, desc]) => (
-                    <div key={title} style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1rem", textAlign: "center" }}>
-                      <div style={{ fontSize: 24, marginBottom: 6 }}>{icon}</div>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#333" }}>{title}</div>
-                      <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>{desc}</div>
-                    </div>
-                  ))}
-                </div>
+
+                </div>{/* end sidebar layout */}
               </div>
             )}
 
