@@ -7,6 +7,28 @@ import {
 
 const API = "https://gaitscan.onrender.com";
 
+// The report endpoint requires the bearer token, so a plain <a href> can't be used.
+async function downloadReport(id) {
+  try {
+    const res = await axios.get(`${API}/report/${id}`, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gaitscan_report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch {
+    window.alert("Could not download the report. Please try again.");
+  }
+}
+
+const linkButton = {
+  background: "none", border: "none", padding: 0, cursor: "pointer",
+  fontSize: 11, color: "#378ADD", marginTop: 4, display: "block", marginLeft: "auto",
+};
+
 const AuthContext = createContext(null);
 function useAuth() { return useContext(AuthContext); }
 
@@ -477,10 +499,10 @@ function MainApp() {
                   </div>
                   <div style={{ fontSize: 14, color: "#555", lineHeight: 1.6 }}>{results.risk_meaning}</div>
                   <div style={{ marginTop: 16 }}>
-                    <a href={`${API}/report/${jobId}`} target="_blank" rel="noreferrer"
-                      style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "9px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-                      Download Full PDF Report
-                    </a>
+                    <button onClick={() => downloadReport(jobId)}
+                      style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "9px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                      Download PDF report
+                    </button>
                   </div>
                 </div>
 
@@ -698,10 +720,9 @@ function MainApp() {
                         {s.risk_score}<span style={{ fontSize: 13, fontWeight: 400, color: "#94a3b8" }}>/100</span>
                       </div>
                       <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{s.risk_label}</div>
-                      <a href={`${API}/report/${s.id}`} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 11, color: "#378ADD", textDecoration: "none", marginTop: 4, display: "block" }}>
+                      <button onClick={() => downloadReport(s.id)} style={linkButton}>
                         Download report →
-                      </a>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -895,10 +916,9 @@ function ClinicianDashboard() {
                     {s.risk_score}<span style={{ fontSize: 13, fontWeight: 400, color: "#94a3b8" }}>/100</span>
                   </div>
                   <div style={{ fontSize: 12, color: "#64748b" }}>{s.risk_label}</div>
-                  <a href={`${API}/report/${s.id}`} target="_blank" rel="noreferrer"
-                    style={{ fontSize: 11, color: "#378ADD", textDecoration: "none", marginTop: 4, display: "block" }}>
+                  <button onClick={() => downloadReport(s.id)} style={linkButton}>
                     Download report →
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
