@@ -10,30 +10,46 @@ const API = "https://gaitscan.onrender.com";
 const AuthContext = createContext(null);
 function useAuth() { return useContext(AuthContext); }
 
+// Set synchronously (not in an effect) so child components' first requests carry the token.
+function setAuthHeader(user) {
+  if (user?.token) axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
+  else delete axios.defaults.headers.common["Authorization"];
+}
+
 function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("gaitscan_user")); }
-    catch { return null; }
+    // Earlier versions saved the plaintext password here; remove it from every browser.
+    localStorage.removeItem("gaitscan_creds");
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem("gaitscan_user")); }
+    catch { stored = null; }
+    setAuthHeader(stored);
+    return stored;
   });
 
   const login = (userData) => {
     localStorage.setItem("gaitscan_user", JSON.stringify(userData));
+    setAuthHeader(userData);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("gaitscan_user");
-    localStorage.removeItem("gaitscan_creds");
+    setAuthHeader(null);
     setUser(null);
   };
 
+  // Tokens expire (12 h); any 401 returns the user to the sign-in screen.
   useEffect(() => {
-  if (user) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-  } else {
-    delete axios.defaults.headers.common["Authorization"];
-  }
-}, [user]);
+    const id = axios.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err.response?.status === 401) logout();
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject?.(id);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
@@ -52,8 +68,6 @@ function LoginPage({ onSwitch }) {
   setLoading(true); setError("");
   try {
     const res = await axios.post(`${API}/auth/login`, form);
-    
-    localStorage.setItem("gaitscan_creds", JSON.stringify(form));
     login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
   } catch (e) {
     setError(e.response?.data?.detail || "Login failed. Please try again.");
@@ -95,7 +109,7 @@ function LoginPage({ onSwitch }) {
 
 function RegisterPage({ onSwitch }) {
   const { login } = useAuth();
-  const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "patient" });
+  const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -103,8 +117,6 @@ function RegisterPage({ onSwitch }) {
   setLoading(true); setError("");
   try {
     const res = await axios.post(`${API}/auth/register`, form);
-    
-    localStorage.setItem("gaitscan_creds", JSON.stringify({ email: form.email, password: form.password }));
     login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
   } catch (e) {
     setError(e.response?.data?.detail || "Registration failed. Please try again.");
@@ -133,21 +145,6 @@ function RegisterPage({ onSwitch }) {
           <label style={S.label}>Password</label>
           <input style={S.input} type="password" placeholder="At least 6 characters"
             value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-        </div>
-        <div style={S.formGroup}>
-          <label style={S.label}>I am a</label>
-          <div style={S.roleRow}>
-            {[
-              { key: "patient", icon: "🧍", label: "Patient" },
-              { key: "clinician", icon: "🩺", label: "Clinician" }
-            ].map(({ key, icon, label }) => (
-              <button key={key} onClick={() => setForm({ ...form, role: key })}
-                style={form.role === key ? S.roleActive : S.roleInactive}>
-                <span style={{ fontSize: 18 }}>{icon}</span>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
-              </button>
-            ))}
-          </div>
         </div>
         <button style={{ ...S.primaryBtn, opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>
           {loading ? "Creating account..." : "Create account"}
@@ -279,7 +276,6 @@ function MainApp() {
     form.append("mode", mode);
     try {
       setProgress("Extracting body landmarks from every frame...");
-      console.log("Token being sent:", axios.defaults.headers.common["Authorization"]);
       const res = await axios.post(`${API}/analyze`, form, {
       onUploadProgress: (e) => {
       if (e.loaded === e.total) setProgress("Classifying activity and analysing gait...");
@@ -765,21 +761,6 @@ const S = {
   },
   switchText: { textAlign: "center", fontSize: 13, color: "#888", margin: 0 },
   switchLink: { color: "#378ADD", cursor: "pointer", fontWeight: 600 },
-  roleRow: { display: "flex", gap: 10 },
-  roleActive: {
-    flex: 1, padding: "10px 0", borderRadius: 8,
-    background: "#378ADD", color: "#fff",
-    border: "none", cursor: "pointer",
-    display: "flex", flexDirection: "column",
-    alignItems: "center", gap: 4
-  },
-  roleInactive: {
-    flex: 1, padding: "10px 0", borderRadius: 8,
-    background: "#f8fafc", color: "#64748b",
-    border: "1px solid #e2e8f0", cursor: "pointer",
-    display: "flex", flexDirection: "column",
-    alignItems: "center", gap: 4
-  },
 };
 function ClinicianDashboard() {
   const [patients, setPatients] = useState([]);
