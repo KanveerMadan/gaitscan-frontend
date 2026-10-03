@@ -219,3 +219,82 @@ test("an expired session (401) signs the user out", async () => {
   });
   await waitFor(() => expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument());
 });
+
+// ---- Phase 1 amendment: password minimum, change-password, rate limits ----------------------
+async function submitLogin() {
+  render(<App />);
+  fireEvent.change(screen.getByPlaceholderText("you@example.com"), { target: { value: "a@b.com" } });
+  fireEvent.change(screen.getByPlaceholderText("••••••••"), { target: { value: "whatever-pass" } });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+  });
+}
+
+test("requests go to the configured API base URL", async () => {
+  axios.post.mockResolvedValueOnce({ data: { access_token: "tok", role: "patient", full_name: "A" } });
+  await submitLogin();
+  expect(axios.post.mock.calls[0][0]).toBe("http://api.test/auth/login");
+});
+
+test("registration asks for at least 10 characters", () => {
+  render(<App />);
+  fireEvent.click(screen.getByText("Create one"));
+  expect(screen.getByPlaceholderText("At least 10 characters")).toBeInTheDocument();
+});
+
+test("429 without a message body still tells the user when to retry", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: { status: 429, data: {}, headers: { "retry-after": "840" } },
+  });
+  await submitLogin();
+  expect(screen.getByText("Too many attempts. Try again in 14 minutes.")).toBeInTheDocument();
+});
+
+test("429 shows the server's message when it has one", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: { status: 429, data: { detail: "Too many attempts. Try again in 15 minute(s)." }, headers: {} },
+  });
+  await submitLogin();
+  expect(screen.getByText("Too many attempts. Try again in 15 minute(s).")).toBeInTheDocument();
+});
+
+test("validation errors with a list detail show a message instead of crashing", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: {
+      status: 422,
+      data: { detail: [{ msg: "value is not a valid email address", loc: ["body"] }] },
+    },
+  });
+  await submitLogin();
+  expect(screen.getByText("value is not a valid email address")).toBeInTheDocument();
+});
+
+async function openChangePassword() {
+  signIn();
+  axios.get.mockResolvedValue({ data: [] });
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: /change password/i }));
+  fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "old-password" } });
+  fireEvent.change(screen.getByLabelText("New password"), { target: { value: "a-new-long-password" } });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /update password/i }));
+  });
+}
+
+test("change-password form posts current and new password", async () => {
+  axios.post.mockResolvedValueOnce({ data: { message: "Password changed." } });
+  await openChangePassword();
+  expect(axios.post).toHaveBeenCalledWith("http://api.test/auth/change-password", {
+    current_password: "old-password",
+    new_password: "a-new-long-password",
+  });
+  expect(screen.getByText("Password changed.")).toBeInTheDocument();
+});
+
+test("change-password form shows the server's rejection", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: { status: 422, data: { detail: "Password must be at least 10 characters." } },
+  });
+  await openChangePassword();
+  expect(screen.getByText("Password must be at least 10 characters.")).toBeInTheDocument();
+});
