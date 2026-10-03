@@ -33,7 +33,9 @@ const ANALYSIS = {
     knee_flexion_range_R: 40,
     cadence: 100,
   },
-  findings: [{ metric: "Knee Symmetry", value: "12%", status: "flagged", plain_english: "Left and right differed." }],
+  findings: [
+    { metric: "Knee Symmetry", value: "12%", status: "flagged", plain_english: "Left and right differed." },
+  ],
   recommendations: [],
   exercises: [],
   report_url: "/report/11111111-2222-3333-4444-555555555555",
@@ -41,9 +43,19 @@ const ANALYSIS = {
 };
 
 const SESSION = {
-  id: "abc", patient_name: "Anonymous", activity: "Walking", confidence: 70, risk_score: 55,
-  risk_label: "Several deviations", risk_color: "amber", cadence: 100, knee_si: 12, hip_si: 3,
-  knee_flex_L: 60, knee_flex_R: 40, created_at: "2026-09-01T10:00:00",
+  id: "abc",
+  patient_name: "Anonymous",
+  activity: "Walking",
+  confidence: 70,
+  risk_score: 55,
+  risk_label: "Several deviations",
+  risk_color: "amber",
+  cadence: 100,
+  knee_si: 12,
+  hip_si: 3,
+  knee_flex_L: 60,
+  knee_flex_R: 40,
+  created_at: "2026-09-01T10:00:00",
 };
 
 function signIn(role = "patient") {
@@ -82,7 +94,9 @@ test("login never stores the password in the browser", async () => {
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
   });
-  const stored = Object.keys(localStorage).map((k) => localStorage.getItem(k)).join(" ");
+  const stored = Object.keys(localStorage)
+    .map((k) => localStorage.getItem(k))
+    .join(" ");
   expect(stored).not.toContain("hunter2-secret");
   expect(localStorage.getItem("gaitscan_creds")).toBeNull();
 });
@@ -172,12 +186,24 @@ test("history shows no risk score", async () => {
 test("clinician dashboard shows no risk score or attention flag", async () => {
   signIn("clinician");
   axios.get.mockResolvedValue({
-    data: [{
-      patient_id: 1, name: "Pat", email: "p@x.com", session_count: 3, latest_risk: 80,
-      latest_risk_color: "amber", latest_activity: "Walking", latest_knee_si: 12,
-      trend: [{ date: "1 Sep", risk: 10 }, { date: "2 Sep", risk: 80 }], flag: true,
-      linked_since: "2026-09-01T00:00:00",
-    }],
+    data: [
+      {
+        patient_id: 1,
+        name: "Pat",
+        email: "p@x.com",
+        session_count: 3,
+        latest_risk: 80,
+        latest_risk_color: "amber",
+        latest_activity: "Walking",
+        latest_knee_si: 12,
+        trend: [
+          { date: "1 Sep", risk: 10 },
+          { date: "2 Sep", risk: 80 },
+        ],
+        flag: true,
+        linked_since: "2026-09-01T00:00:00",
+      },
+    ],
   });
   render(<App />);
   await screen.findByText("Pat");
