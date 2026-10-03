@@ -59,7 +59,7 @@ function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     // Earlier versions saved the plaintext password here; remove it from every browser.
     localStorage.removeItem("gaitscan_creds");
-    let stored = null;
+    let stored;
     try { stored = JSON.parse(localStorage.getItem("gaitscan_user")); }
     catch { stored = null; }
     setAuthHeader(stored);
@@ -291,10 +291,6 @@ function MainApp() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [mode, setMode] = useState("Clinical");
 
-  useEffect(() => {
-    if (tab === "history") fetchHistory();
-  }, [tab]);
-
   const fetchHistory = async () => {
   setLoadingHistory(true);
   try {
@@ -305,6 +301,10 @@ function MainApp() {
   }
   setLoadingHistory(false);
 };
+
+  useEffect(() => {
+    if (tab === "history") fetchHistory();
+  }, [tab]);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -794,8 +794,6 @@ function ClinicianDashboard() {
 
   const riskColors = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
 
-  useEffect(() => { fetchPatients(); }, []);
-
   const fetchPatients = async () => {
   setLoading(true);
   try {
@@ -807,6 +805,7 @@ function ClinicianDashboard() {
     } catch { setPatients([]); }
     setLoading(false);
   };
+  useEffect(() => { fetchPatients(); }, []);
   const generateInvite = async () => {
     setGeneratingCode(true);
     try {
@@ -815,7 +814,7 @@ function ClinicianDashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setInviteCode(res.data.code);
-    } catch {}
+    } catch { /* ponytail: no code is shown; error states arrive with TanStack Query (ADR-008) */ }
     setGeneratingCode(false);
   };
 
@@ -828,7 +827,7 @@ function ClinicianDashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPatientSessions(res.data);
-    } catch {}
+    } catch { /* ponytail: list stays empty; error states arrive with TanStack Query (ADR-008) */ }
     setLoadingSessions(false);
   };
   
