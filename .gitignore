@@ -21,3 +21,19 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# environment files (keep only the documented example)
+.env
+.env.*
+!.env.example
+
+# never commit patient media or local databases
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.MP4
+*.MOV
+*.AVI
+*.db
+*.sqlite

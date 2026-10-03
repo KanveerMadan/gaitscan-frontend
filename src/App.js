@@ -7,33 +7,88 @@ import {
 
 const API = "https://gaitscan.onrender.com";
 
+// The report endpoint requires the bearer token, so a plain <a href> can't be used.
+async function downloadReport(id) {
+  try {
+    const res = await axios.get(`${API}/report/${id}`, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "gaitscan_report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch {
+    window.alert("Could not download the report. Please try again.");
+  }
+}
+
+const linkButton = {
+  background: "none", border: "none", padding: 0, cursor: "pointer",
+  fontSize: 11, color: "#378ADD", marginTop: 4, display: "block", marginLeft: "auto",
+};
+
+const DISCLAIMER =
+  "GaitScan is an experimental measurement tool, not a medical device. It does not diagnose " +
+  "conditions or predict outcomes, and its measurements have not been clinically validated.";
+
+function Disclaimer() {
+  return (
+    <div role="note" style={{
+      background: "#FFFBEB", borderBottom: "1px solid #FCE8A0", color: "#633806",
+      fontSize: 12, lineHeight: 1.5, padding: "8px 16px", textAlign: "center",
+    }}>
+      {DISCLAIMER}
+    </div>
+  );
+}
+
+const STATUS_TEXT = { good: "Within reference range", mild: "Near edge of range", flagged: "Outside reference range" };
+
 const AuthContext = createContext(null);
 function useAuth() { return useContext(AuthContext); }
 
+// Set synchronously (not in an effect) so child components' first requests carry the token.
+function setAuthHeader(user) {
+  if (user?.token) axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
+  else delete axios.defaults.headers.common["Authorization"];
+}
+
 function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("gaitscan_user")); }
-    catch { return null; }
+    // Earlier versions saved the plaintext password here; remove it from every browser.
+    localStorage.removeItem("gaitscan_creds");
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem("gaitscan_user")); }
+    catch { stored = null; }
+    setAuthHeader(stored);
+    return stored;
   });
 
   const login = (userData) => {
     localStorage.setItem("gaitscan_user", JSON.stringify(userData));
+    setAuthHeader(userData);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("gaitscan_user");
-    localStorage.removeItem("gaitscan_creds");
+    setAuthHeader(null);
     setUser(null);
   };
 
+  // Tokens expire (12 h); any 401 returns the user to the sign-in screen.
   useEffect(() => {
-  if (user) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
-  } else {
-    delete axios.defaults.headers.common["Authorization"];
-  }
-}, [user]);
+    const id = axios.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err.response?.status === 401) logout();
+        return Promise.reject(err);
+      }
+    );
+    return () => axios.interceptors.response.eject?.(id);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
@@ -52,8 +107,6 @@ function LoginPage({ onSwitch }) {
   setLoading(true); setError("");
   try {
     const res = await axios.post(`${API}/auth/login`, form);
-    
-    localStorage.setItem("gaitscan_creds", JSON.stringify(form));
     login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
   } catch (e) {
     setError(e.response?.data?.detail || "Login failed. Please try again.");
@@ -95,7 +148,7 @@ function LoginPage({ onSwitch }) {
 
 function RegisterPage({ onSwitch }) {
   const { login } = useAuth();
-  const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "patient" });
+  const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -103,8 +156,6 @@ function RegisterPage({ onSwitch }) {
   setLoading(true); setError("");
   try {
     const res = await axios.post(`${API}/auth/register`, form);
-    
-    localStorage.setItem("gaitscan_creds", JSON.stringify({ email: form.email, password: form.password }));
     login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
   } catch (e) {
     setError(e.response?.data?.detail || "Registration failed. Please try again.");
@@ -134,21 +185,6 @@ function RegisterPage({ onSwitch }) {
           <input style={S.input} type="password" placeholder="At least 6 characters"
             value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
         </div>
-        <div style={S.formGroup}>
-          <label style={S.label}>I am a</label>
-          <div style={S.roleRow}>
-            {[
-              { key: "patient", icon: "🧍", label: "Patient" },
-              { key: "clinician", icon: "🩺", label: "Clinician" }
-            ].map(({ key, icon, label }) => (
-              <button key={key} onClick={() => setForm({ ...form, role: key })}
-                style={form.role === key ? S.roleActive : S.roleInactive}>
-                <span style={{ fontSize: 18 }}>{icon}</span>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
         <button style={{ ...S.primaryBtn, opacity: loading ? 0.7 : 1 }} onClick={handleSubmit} disabled={loading}>
           {loading ? "Creating account..." : "Create account"}
         </button>
@@ -165,9 +201,14 @@ function AuthGate({ children }) {
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
   if (!user) {
-    return showLogin
-      ? <LoginPage onSwitch={() => setShowLogin(false)} />
-      : <RegisterPage onSwitch={() => setShowLogin(true)} />;
+    return (
+      <>
+        <Disclaimer />
+        {showLogin
+          ? <LoginPage onSwitch={() => setShowLogin(false)} />
+          : <RegisterPage onSwitch={() => setShowLogin(true)} />}
+      </>
+    );
   }
   return children;
 }
@@ -279,7 +320,6 @@ function MainApp() {
     form.append("mode", mode);
     try {
       setProgress("Extracting body landmarks from every frame...");
-      console.log("Token being sent:", axios.defaults.headers.common["Authorization"]);
       const res = await axios.post(`${API}/analyze`, form, {
       onUploadProgress: (e) => {
       if (e.loaded === e.total) setProgress("Classifying activity and analysing gait...");
@@ -310,13 +350,13 @@ function MainApp() {
 
   const trendData = [...sessions].reverse().map(s => ({
     date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-    risk: s.risk_score,
     knee_si: s.knee_si,
   }));
   if (user?.role === "clinician") {
     return (
       <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
         <Navbar tab="dashboard" setTab={() => {}} />
+        <Disclaimer />
         <ClinicianDashboard />
       </div>
     );
@@ -325,6 +365,7 @@ function MainApp() {
     return (
       <div style={{ minHeight: "100vh", background: "#f7f8fc", fontFamily: "'Inter', -apple-system, sans-serif" }}>
         <Navbar tab={tab} setTab={setTab} />
+        <Disclaimer />
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
@@ -337,10 +378,10 @@ function MainApp() {
                     Upload a walking or running video
                   </h1>
                   <p style={{ fontSize: 14, color: "#666", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>
-                    {mode === "Clinical"  && "Standard physiotherapy assessment — suitable for all users."}
-                    {mode === "Runner"    && "Performance-focused — tighter symmetry and higher cadence targets."}
-                    {mode === "Athlete"   && "Strictest thresholds — flags even minor asymmetries for peak efficiency."}
-                    {mode === "Elderly"   && "Fall-risk focused — lenient thresholds, prioritising stability and safety."}
+                    {mode === "Clinical"  && "General reference ranges — not clinically validated."}
+                    {mode === "Runner"    && "Tighter symmetry and higher cadence reference ranges for runners."}
+                    {mode === "Athlete"   && "The strictest reference ranges."}
+                    {mode === "Elderly"   && "Wider reference ranges intended for older adults."}
                   </p>
                 </div>
 
@@ -359,10 +400,10 @@ function MainApp() {
                       Analysis Mode
                     </div>
                     {[
-                      { key: "Clinical", icon: "🩺", label: "Clinical",  desc: "Standard physio",         bullets: ["Balanced thresholds", "All activity types", "General rehab"] },
-                      { key: "Runner",   icon: "🏃", label: "Runner",    desc: "Performance & injury",    bullets: ["Tighter symmetry", "Higher cadence targets", "Running-specific drills"] },
-                      { key: "Athlete",  icon: "⚡", label: "Athlete",   desc: "Peak efficiency",         bullets: ["Strictest thresholds", "Flags minor asymmetry", "Advanced exercises"] },
-                      { key: "Elderly",  icon: "🧓", label: "Elderly",   desc: "Fall risk & stability",   bullets: ["Lenient thresholds", "Fall-risk focus", "Low-impact exercises"] },
+                      { key: "Clinical", icon: "🩺", label: "Clinical",  desc: "General reference",       bullets: ["Balanced reference ranges", "All activity types"] },
+                      { key: "Runner",   icon: "🏃", label: "Runner",    desc: "Runner reference",        bullets: ["Tighter symmetry", "Higher cadence reference", "Running drills"] },
+                      { key: "Athlete",  icon: "⚡", label: "Athlete",   desc: "Strictest ranges",        bullets: ["Strictest reference ranges", "Advanced exercises"] },
+                      { key: "Elderly",  icon: "🧓", label: "Elderly",   desc: "Wider ranges",            bullets: ["Wider reference ranges", "Low-impact exercises"] },
                     ].map(({ key, icon, label, desc, bullets }) => {
                       const isSelected = mode === key;
                       return (
@@ -415,7 +456,10 @@ function MainApp() {
                       <div style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "10px 24px", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
                         Choose video
                       </div>
-                      <p style={{ fontSize: 12, color: "#bbb", marginTop: 16 }}>Supports .mp4 .mov .avi · Phone, CCTV, sports footage · Any angle</p>
+                      <p style={{ fontSize: 12, color: "#888", marginTop: 16, lineHeight: 1.6 }}>
+                        .mp4 .mov .avi, up to 100 MB · Film side-on, phone in landscape, whole body in frame,
+                        about 3–4 m away, walking across the camera for 10–20 s
+                      </p>
                       <input id="file-input" type="file" accept=".mp4,.mov,.avi" style={{ display: "none" }}
                         onChange={(e) => handleFile(e.target.files[0])} />
                     </div>
@@ -461,35 +505,24 @@ function MainApp() {
                 </div>
 
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Risk Assessment</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 16 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ height: 12, background: "#f0f0f0", borderRadius: 6, overflow: "hidden" }}>
-                        <div style={{
-                          height: "100%", borderRadius: 6, transition: "width 1s ease",
-                          width: `${results.scores.overall_risk_score}%`,
-                          background: riskColors[results.risk_color]
-                        }} />
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 28, fontWeight: 700, color: riskColors[results.risk_color], minWidth: 70, textAlign: "right" }}>
-                      {results.scores.overall_risk_score}/100
-                    </div>
-                  </div>
+                  <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>Measurement summary</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: riskColors[results.risk_color], marginBottom: 8 }}>
                     {results.risk_label}
                   </div>
                   <div style={{ fontSize: 14, color: "#555", lineHeight: 1.6 }}>{results.risk_meaning}</div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 8 }}>
+                    Experimental measurements from a single 2D video. Not clinically validated.
+                  </div>
                   <div style={{ marginTop: 16 }}>
-                    <a href={`${API}/report/${jobId}`} target="_blank" rel="noreferrer"
-                      style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "9px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
-                      Download Full PDF Report
-                    </a>
+                    <button onClick={() => downloadReport(jobId)}
+                      style={{ display: "inline-block", background: "#378ADD", color: "#fff", padding: "9px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>
+                      Download PDF report
+                    </button>
                   </div>
                 </div>
 
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Detailed Findings</div>
+                  <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>Measurements</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {results.findings.map((f, i) => (
                       <div key={i} style={{
@@ -510,6 +543,7 @@ function MainApp() {
                             <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e" }}>{f.metric}</span>
                             <span style={{ fontSize: 13, fontWeight: 600, color: statusColors[f.status] }}>{f.value}</span>
                           </div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: statusColors[f.status], marginBottom: 2 }}>{STATUS_TEXT[f.status]}</div>
                           <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6 }}>{f.plain_english}</div>
                         </div>
                       </div>
@@ -520,7 +554,7 @@ function MainApp() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                   <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Symmetry Index (%)</div>
-                    <div style={{ fontSize: 11, color: "#999", marginBottom: 16 }}>Lower is better — under 10% is normal</div>
+                    <div style={{ fontSize: 11, color: "#999", marginBottom: 16 }}>Reference: under 10% (not clinically validated)</div>
                     <ResponsiveContainer width="100%" height={160}>
                       <BarChart data={symmetryData} barSize={40}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -535,7 +569,7 @@ function MainApp() {
                   </div>
                   <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Knee Flexion Range (°)</div>
-                    <div style={{ fontSize: 11, color: "#999", marginBottom: 16 }}>Higher is better — above 50° is normal for walking</div>
+                    <div style={{ fontSize: 11, color: "#999", marginBottom: 16 }}>Reference: above 50° for walking (not clinically validated)</div>
                     <ResponsiveContainer width="100%" height={160}>
                       <BarChart data={flexionData} barSize={40}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -552,7 +586,7 @@ function MainApp() {
 
                 {results.recommendations.length > 0 && (
                   <div style={{ background: "#fffbf0", border: "1px solid #fce8a0", borderRadius: 12, padding: "1.25rem", marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#854F0B", marginBottom: 12 }}>Recommendations</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#854F0B", marginBottom: 12 }}>Discussion points</div>
                     {results.recommendations.map((r, i) => (
                       <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 13, color: "#633806", alignItems: "flex-start" }}>
                         <span style={{ marginTop: 1 }}>→</span> {r}
@@ -564,10 +598,10 @@ function MainApp() {
                 {results.exercises && results.exercises.length > 0 && (
                   <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 16, padding: "1.5rem", marginTop: 16 }}>
                     <div style={{ fontSize: 11, color: "#aaa", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-                      Recommended Exercises
+                      Exercises to discuss with your physiotherapist
                     </div>
                     <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
-                      Personalised to your specific findings — generated by AI
+                      General exercises matched to the measurements above. Not a treatment plan.
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       {results.exercises.map((ex, i) => (
@@ -595,7 +629,7 @@ function MainApp() {
                             </div>
                           </div>
                           <div style={{ fontSize: 13, color: "#185FA5", background: "#E6F1FB", padding: "8px 12px", borderRadius: 8, marginBottom: 10, lineHeight: 1.5 }}>
-                            <strong>Why for you:</strong> {ex.why}
+                            <strong>Why this may help:</strong> {ex.why}
                           </div>
                           <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6 }}>
                             <strong>How to do it:</strong> {ex.instructions}
@@ -635,23 +669,10 @@ function MainApp() {
             )}
 
             {!loadingHistory && (sessions || []).length >= 2 && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
-                <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Risk Score Over Time</div>
-                  <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Lower is better</div>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={trendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(v) => [`${v}/100`, "Risk Score"]} />
-                      <Line type="monotone" dataKey="risk" stroke="#E24B4A" strokeWidth={2} dot={{ r: 4 }} name="Risk Score" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+              <div style={{ marginBottom: 28 }}>
                 <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Knee Symmetry Over Time</div>
-                  <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Lower is better — under 10% is normal</div>
+                  <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Reference: under 10% (not clinically validated)</div>
                   <ResponsiveContainer width="100%" height={160}>
                     <LineChart data={trendData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -698,14 +719,10 @@ function MainApp() {
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: riskColors[s.risk_color] || "#64748b" }}>
-                        {s.risk_score}<span style={{ fontSize: 13, fontWeight: 400, color: "#94a3b8" }}>/100</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{s.risk_label}</div>
-                      <a href={`${API}/report/${s.id}`} target="_blank" rel="noreferrer"
-                        style={{ fontSize: 11, color: "#378ADD", textDecoration: "none", marginTop: 4, display: "block" }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: riskColors[s.risk_color] || "#64748b" }}>{s.risk_label}</div>
+                      <button onClick={() => downloadReport(s.id)} style={linkButton}>
                         Download report →
-                      </a>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -765,21 +782,6 @@ const S = {
   },
   switchText: { textAlign: "center", fontSize: 13, color: "#888", margin: 0 },
   switchLink: { color: "#378ADD", cursor: "pointer", fontWeight: 600 },
-  roleRow: { display: "flex", gap: 10 },
-  roleActive: {
-    flex: 1, padding: "10px 0", borderRadius: 8,
-    background: "#378ADD", color: "#fff",
-    border: "none", cursor: "pointer",
-    display: "flex", flexDirection: "column",
-    alignItems: "center", gap: 4
-  },
-  roleInactive: {
-    flex: 1, padding: "10px 0", borderRadius: 8,
-    background: "#f8fafc", color: "#64748b",
-    border: "1px solid #e2e8f0", cursor: "pointer",
-    display: "flex", flexDirection: "column",
-    alignItems: "center", gap: 4
-  },
 };
 function ClinicianDashboard() {
   const [patients, setPatients] = useState([]);
@@ -833,7 +835,6 @@ function ClinicianDashboard() {
   const trendData = patientSessions?.sessions
     ? [...patientSessions.sessions].reverse().map(s => ({
         date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-        risk: s.risk_score,
         knee_si: s.knee_si
       }))
     : [];
@@ -853,34 +854,16 @@ function ClinicianDashboard() {
           <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>{selectedPatient.email}</div>
           <div style={{ display: "flex", gap: 20, marginTop: 12 }}>
             <div style={{ fontSize: 13, color: "#64748b" }}>Sessions: <strong>{selectedPatient.session_count}</strong></div>
-            {selectedPatient.flag && (
-              <div style={{ fontSize: 12, background: "#fff0f0", color: "#c00", padding: "3px 10px", borderRadius: 20, fontWeight: 600, border: "1px solid #fcc" }}>
-                ⚠ Needs attention
-              </div>
-            )}
           </div>
         </div>
 
         {loadingSessions && <div style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Loading sessions...</div>}
 
         {!loadingSessions && trendData.length >= 2 && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-            <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Risk Score Over Time</div>
-              <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Lower is better</div>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => [`${v}/100`, "Risk"]} />
-                  <Line type="monotone" dataKey="risk" stroke="#E24B4A" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <div style={{ marginBottom: 20 }}>
             <div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>Knee Symmetry Over Time</div>
-              <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Lower is better</div>
+              <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>Reference: under 10% (not clinically validated)</div>
               <ResponsiveContainer width="100%" height={160}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -910,14 +893,10 @@ function ClinicianDashboard() {
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: riskColors[s.risk_color] || "#64748b" }}>
-                    {s.risk_score}<span style={{ fontSize: 13, fontWeight: 400, color: "#94a3b8" }}>/100</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: "#64748b" }}>{s.risk_label}</div>
-                  <a href={`${API}/report/${s.id}`} target="_blank" rel="noreferrer"
-                    style={{ fontSize: 11, color: "#378ADD", textDecoration: "none", marginTop: 4, display: "block" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: riskColors[s.risk_color] || "#64748b" }}>{s.risk_label}</div>
+                  <button onClick={() => downloadReport(s.id)} style={linkButton}>
                     Download report →
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
@@ -978,14 +957,14 @@ function ClinicianDashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {patients.map(p => (
             <div key={p.patient_id} onClick={() => viewPatient(p)}
-              style={{ background: "#fff", border: `1px solid ${p.flag ? "#ffd0d0" : "#eee"}`, borderRadius: 14, padding: "18px 20px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+              style={{ background: "#fff", border: "1px solid #eee", borderRadius: 14, padding: "18px 20px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
-                  background: p.flag ? "#fff0f0" : "#E6F1FB",
-                  color: p.flag ? "#c00" : "#185FA5",
+                  background: "#E6F1FB",
+                  color: "#185FA5",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 16, fontWeight: 700
                 }}>
@@ -994,7 +973,6 @@ function ClinicianDashboard() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                     <span style={{ fontWeight: 600, fontSize: 15, color: "#1a1a2e" }}>{p.name}</span>
-                    {p.flag && <span style={{ fontSize: 11, background: "#fff0f0", color: "#c00", padding: "2px 8px", borderRadius: 10, fontWeight: 600, border: "1px solid #fcc" }}>⚠ Needs attention</span>}
                   </div>
                   <div style={{ fontSize: 12, color: "#94a3b8" }}>{p.email}</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
@@ -1004,22 +982,11 @@ function ClinicianDashboard() {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                {p.trend && p.trend.length >= 2 && (
-                  <div style={{ width: 100, height: 40 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={p.trend}>
-                        <Line type="monotone" dataKey="risk" stroke={p.flag ? "#E24B4A" : "#378ADD"} strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
                 <div style={{ textAlign: "right", minWidth: 60 }}>
-                  {p.latest_risk !== null ? (
+                  {p.session_count > 0 ? (
                     <>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: riskColors[p.latest_risk_color] || "#64748b" }}>
-                        {p.latest_risk}<span style={{ fontSize: 12, fontWeight: 400, color: "#94a3b8" }}>/100</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>latest risk</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e" }}>{p.latest_knee_si}%</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>latest knee SI</div>
                     </>
                   ) : (
                     <div style={{ fontSize: 12, color: "#94a3b8" }}>No sessions</div>
