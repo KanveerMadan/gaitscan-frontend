@@ -1,0 +1,15 @@
+# Same framework as the backend. Install once: pipx install pre-commit (or `uv tool install pre-commit`),
+# then `pre-commit install`. Needs git >= 2.35. Tools come from node_modules (npm ci).
+repos:
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npx eslint --max-warnings 0
+        language: system
+        files: \.(js|jsx|ts|tsx)$
+      - id: prettier
+        name: prettier
+        entry: npx prettier --check --ignore-unknown
+        language: system
+        types: [text]
