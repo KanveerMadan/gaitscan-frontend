@@ -15,6 +15,24 @@ import {
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
+// One place to turn an API error into text a person can read.
+function errorMessage(err, fallback) {
+  const res = err?.response;
+  if (!res) return fallback;
+  const detail = res.data?.detail;
+  if (typeof detail === "string") return detail;
+  // FastAPI validation errors: [{ msg, loc, ... }]
+  if (Array.isArray(detail) && detail[0]?.msg) return detail.map((d) => d.msg).join(" ");
+  if (res.status === 429) {
+    const seconds = Number(res.headers?.["retry-after"]);
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    return Number.isFinite(seconds) && seconds > 0
+      ? `Too many attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`
+      : "Too many attempts. Please wait a few minutes and try again.";
+  }
+  return fallback;
+}
+
 // The report endpoint requires the bearer token, so a plain <a href> can't be used.
 async function downloadReport(id) {
   try {
@@ -138,7 +156,7 @@ function LoginPage({ onSwitch }) {
       const res = await axios.post(`${API}/auth/login`, form);
       login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
     } catch (e) {
-      setError(e.response?.data?.detail || "Login failed. Please try again.");
+      setError(errorMessage(e, "Login failed. Please try again."));
     }
     setLoading(false);
   };
@@ -203,7 +221,7 @@ function RegisterPage({ onSwitch }) {
       const res = await axios.post(`${API}/auth/register`, form);
       login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
     } catch (e) {
-      setError(e.response?.data?.detail || "Registration failed. Please try again.");
+      setError(errorMessage(e, "Registration failed. Please try again."));
     }
     setLoading(false);
   };
@@ -240,7 +258,7 @@ function RegisterPage({ onSwitch }) {
           <input
             style={S.input}
             type="password"
-            placeholder="At least 6 characters"
+            placeholder="At least 10 characters"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
@@ -281,8 +299,75 @@ function AuthGate({ children }) {
   return children;
 }
 
+function ChangePasswordForm() {
+  const [form, setForm] = useState({ current_password: "", new_password: "" });
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatus(null);
+    try {
+      const res = await axios.post(`${API}/auth/change-password`, form);
+      setStatus({ ok: true, msg: res.data?.message || "Password changed." });
+      setForm({ current_password: "", new_password: "" });
+    } catch (err) {
+      setStatus({ ok: false, msg: errorMessage(err, "Could not change the password. Please try again.") });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <form onSubmit={submit} style={{ maxWidth: 920, margin: "0 auto", padding: "12px 0 16px" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div style={S.formGroup}>
+          <label style={S.label} htmlFor="current-password">
+            Current password
+          </label>
+          <input
+            id="current-password"
+            style={S.input}
+            type="password"
+            autoComplete="current-password"
+            value={form.current_password}
+            onChange={(e) => setForm({ ...form, current_password: e.target.value })}
+          />
+        </div>
+        <div style={S.formGroup}>
+          <label style={S.label} htmlFor="new-password">
+            New password
+          </label>
+          <input
+            id="new-password"
+            style={S.input}
+            type="password"
+            autoComplete="new-password"
+            placeholder="At least 10 characters"
+            value={form.new_password}
+            onChange={(e) => setForm({ ...form, new_password: e.target.value })}
+          />
+        </div>
+        <button
+          type="submit"
+          style={{ ...S.primaryBtn, width: "auto", padding: "10px 18px" }}
+          disabled={loading}
+        >
+          {loading ? "Updating..." : "Update password"}
+        </button>
+      </div>
+      {status && (
+        <div role="status" style={{ marginTop: 10, fontSize: 13, color: status.ok ? "#0F6E56" : "#A32D2D" }}>
+          {status.msg}
+        </div>
+      )}
+    </form>
+  );
+}
+
 function Navbar({ tab, setTab }) {
   const { user, logout } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const roleColor = user?.role === "clinician" ? "#185FA5" : "#0F6E56";
   const roleBg = user?.role === "clinician" ? "#E6F1FB" : "#E1F5EE";
 
@@ -372,6 +457,21 @@ function Navbar({ tab, setTab }) {
             </div>
           </div>
           <button
+            onClick={() => setShowPassword((v) => !v)}
+            aria-expanded={showPassword}
+            style={{
+              background: "none",
+              border: "1px solid #e2e8f0",
+              borderRadius: 7,
+              padding: "5px 12px",
+              fontSize: 12,
+              color: "#888",
+              cursor: "pointer",
+            }}
+          >
+            Change password
+          </button>
+          <button
             onClick={logout}
             style={{
               background: "none",
@@ -387,6 +487,7 @@ function Navbar({ tab, setTab }) {
           </button>
         </div>
       </div>
+      {showPassword && <ChangePasswordForm />}
     </div>
   );
 }
@@ -442,7 +543,7 @@ function MainApp() {
       setJobId(res.data.job_id);
       setStage("results");
     } catch (err) {
-      setError(err.response?.data?.detail || "Analysis failed. Please try again.");
+      setError(errorMessage(err, "Analysis failed. Please try again."));
       setStage("upload");
     }
   };
@@ -1855,7 +1956,7 @@ function JoinClinicianCard() {
       setStatus({ type: "success", msg: res.data.message });
       setCode("");
     } catch (e) {
-      setStatus({ type: "error", msg: e.response?.data?.detail || "Failed to join" });
+      setStatus({ type: "error", msg: errorMessage(e, "Failed to join") });
     }
     setLoading(false);
   };
