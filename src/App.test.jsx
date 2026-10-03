@@ -2,12 +2,12 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import axios from "axios";
 import App from "./App";
 
-jest.mock("axios", () => {
+vi.mock("axios", () => {
   const m = {
-    post: jest.fn(),
-    get: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
     defaults: { headers: { common: {} } },
-    interceptors: { response: { use: jest.fn() } },
+    interceptors: { response: { use: vi.fn() } },
   };
   return { __esModule: true, default: m, ...m };
 });
@@ -64,13 +64,13 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   };
-  global.URL.createObjectURL = jest.fn(() => "blob:report");
-  global.URL.revokeObjectURL = jest.fn();
+  global.URL.createObjectURL = vi.fn(() => "blob:report");
+  global.URL.revokeObjectURL = vi.fn();
 });
 
 beforeEach(() => {
   localStorage.clear();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   axios.defaults.headers.common = {};
 });
 
@@ -109,7 +109,7 @@ test("registration offers no role choice and sends no role", async () => {
 
 test("never logs the bearer token", async () => {
   signIn();
-  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
   axios.post.mockResolvedValueOnce({ data: ANALYSIS });
   render(<App />);
   await uploadVideo();

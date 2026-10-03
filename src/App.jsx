@@ -5,7 +5,7 @@ import {
   BarChart, Bar, Cell, LineChart, Line
 } from "recharts";
 
-const API = "https://gaitscan.onrender.com";
+const API = import.meta.env.VITE_API_BASE_URL;
 
 // The report endpoint requires the bearer token, so a plain <a href> can't be used.
 async function downloadReport(id) {
