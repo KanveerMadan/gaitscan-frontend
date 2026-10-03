@@ -2,9 +2,9 @@ import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   // Fail the production build instead of shipping a bundle that calls "undefined/auth/login".
-  if (mode === "production" && !loadEnv(mode, ".").VITE_API_BASE_URL) {
+  if (command === "build" && mode === "production" && !loadEnv(mode, ".").VITE_API_BASE_URL) {
     throw new Error("VITE_API_BASE_URL must be set for production builds (see .env.example).");
   }
   return {
