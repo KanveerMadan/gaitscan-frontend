@@ -7,7 +7,6 @@ const ROWS = [
   ["step_time", "Step time"],
   ["stride_time", "Stride time"],
   ["peak_knee_flexion", "Peak knee bend (per stride)"],
-  ["hip_sagittal_excursion", "Hip swing range (per stride)"],
   ["step_length", "Step length"],
   ["walking_speed", "Walking speed"],
 ];
