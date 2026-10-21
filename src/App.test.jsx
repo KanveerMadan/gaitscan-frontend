@@ -2,12 +2,12 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import axios from "axios";
 import App from "./App";
 
-jest.mock("axios", () => {
+vi.mock("axios", () => {
   const m = {
-    post: jest.fn(),
-    get: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
     defaults: { headers: { common: {} } },
-    interceptors: { response: { use: jest.fn() } },
+    interceptors: { response: { use: vi.fn() } },
   };
   return { __esModule: true, default: m, ...m };
 });
@@ -33,7 +33,9 @@ const ANALYSIS = {
     knee_flexion_range_R: 40,
     cadence: 100,
   },
-  findings: [{ metric: "Knee Symmetry", value: "12%", status: "flagged", plain_english: "Left and right differed." }],
+  findings: [
+    { metric: "Knee Symmetry", value: "12%", status: "flagged", plain_english: "Left and right differed." },
+  ],
   recommendations: [],
   exercises: [],
   report_url: "/report/11111111-2222-3333-4444-555555555555",
@@ -41,9 +43,19 @@ const ANALYSIS = {
 };
 
 const SESSION = {
-  id: "abc", patient_name: "Anonymous", activity: "Walking", confidence: 70, risk_score: 55,
-  risk_label: "Several deviations", risk_color: "amber", cadence: 100, knee_si: 12, hip_si: 3,
-  knee_flex_L: 60, knee_flex_R: 40, created_at: "2026-09-01T10:00:00",
+  id: "abc",
+  patient_name: "Anonymous",
+  activity: "Walking",
+  confidence: 70,
+  risk_score: 55,
+  risk_label: "Several deviations",
+  risk_color: "amber",
+  cadence: 100,
+  knee_si: 12,
+  hip_si: 3,
+  knee_flex_L: 60,
+  knee_flex_R: 40,
+  created_at: "2026-09-01T10:00:00",
 };
 
 function signIn(role = "patient") {
@@ -64,13 +76,13 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   };
-  global.URL.createObjectURL = jest.fn(() => "blob:report");
-  global.URL.revokeObjectURL = jest.fn();
+  global.URL.createObjectURL = vi.fn(() => "blob:report");
+  global.URL.revokeObjectURL = vi.fn();
 });
 
 beforeEach(() => {
   localStorage.clear();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   axios.defaults.headers.common = {};
 });
 
@@ -82,7 +94,9 @@ test("login never stores the password in the browser", async () => {
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
   });
-  const stored = Object.keys(localStorage).map((k) => localStorage.getItem(k)).join(" ");
+  const stored = Object.keys(localStorage)
+    .map((k) => localStorage.getItem(k))
+    .join(" ");
   expect(stored).not.toContain("hunter2-secret");
   expect(localStorage.getItem("gaitscan_creds")).toBeNull();
 });
@@ -109,7 +123,7 @@ test("registration offers no role choice and sends no role", async () => {
 
 test("never logs the bearer token", async () => {
   signIn();
-  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
   axios.post.mockResolvedValueOnce({ data: ANALYSIS });
   render(<App />);
   await uploadVideo();
@@ -172,12 +186,24 @@ test("history shows no risk score", async () => {
 test("clinician dashboard shows no risk score or attention flag", async () => {
   signIn("clinician");
   axios.get.mockResolvedValue({
-    data: [{
-      patient_id: 1, name: "Pat", email: "p@x.com", session_count: 3, latest_risk: 80,
-      latest_risk_color: "amber", latest_activity: "Walking", latest_knee_si: 12,
-      trend: [{ date: "1 Sep", risk: 10 }, { date: "2 Sep", risk: 80 }], flag: true,
-      linked_since: "2026-09-01T00:00:00",
-    }],
+    data: [
+      {
+        patient_id: 1,
+        name: "Pat",
+        email: "p@x.com",
+        session_count: 3,
+        latest_risk: 80,
+        latest_risk_color: "amber",
+        latest_activity: "Walking",
+        latest_knee_si: 12,
+        trend: [
+          { date: "1 Sep", risk: 10 },
+          { date: "2 Sep", risk: 80 },
+        ],
+        flag: true,
+        linked_since: "2026-09-01T00:00:00",
+      },
+    ],
   });
   render(<App />);
   await screen.findByText("Pat");
@@ -192,4 +218,83 @@ test("an expired session (401) signs the user out", async () => {
     await onError({ response: { status: 401 } }).catch(() => {});
   });
   await waitFor(() => expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument());
+});
+
+// ---- Phase 1 amendment: password minimum, change-password, rate limits ----------------------
+async function submitLogin() {
+  render(<App />);
+  fireEvent.change(screen.getByPlaceholderText("you@example.com"), { target: { value: "a@b.com" } });
+  fireEvent.change(screen.getByPlaceholderText("••••••••"), { target: { value: "whatever-pass" } });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+  });
+}
+
+test("requests go to the configured API base URL", async () => {
+  axios.post.mockResolvedValueOnce({ data: { access_token: "tok", role: "patient", full_name: "A" } });
+  await submitLogin();
+  expect(axios.post.mock.calls[0][0]).toBe("http://api.test/auth/login");
+});
+
+test("registration asks for at least 10 characters", () => {
+  render(<App />);
+  fireEvent.click(screen.getByText("Create one"));
+  expect(screen.getByPlaceholderText("At least 10 characters")).toBeInTheDocument();
+});
+
+test("429 without a message body still tells the user when to retry", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: { status: 429, data: {}, headers: { "retry-after": "840" } },
+  });
+  await submitLogin();
+  expect(screen.getByText("Too many attempts. Try again in 14 minutes.")).toBeInTheDocument();
+});
+
+test("429 shows the server's message when it has one", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: { status: 429, data: { detail: "Too many attempts. Try again in 15 minute(s)." }, headers: {} },
+  });
+  await submitLogin();
+  expect(screen.getByText("Too many attempts. Try again in 15 minute(s).")).toBeInTheDocument();
+});
+
+test("validation errors with a list detail show a message instead of crashing", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: {
+      status: 422,
+      data: { detail: [{ msg: "value is not a valid email address", loc: ["body"] }] },
+    },
+  });
+  await submitLogin();
+  expect(screen.getByText("value is not a valid email address")).toBeInTheDocument();
+});
+
+async function openChangePassword() {
+  signIn();
+  axios.get.mockResolvedValue({ data: [] });
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: /change password/i }));
+  fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "old-password" } });
+  fireEvent.change(screen.getByLabelText("New password"), { target: { value: "a-new-long-password" } });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /update password/i }));
+  });
+}
+
+test("change-password form posts current and new password", async () => {
+  axios.post.mockResolvedValueOnce({ data: { message: "Password changed." } });
+  await openChangePassword();
+  expect(axios.post).toHaveBeenCalledWith("http://api.test/auth/change-password", {
+    current_password: "old-password",
+    new_password: "a-new-long-password",
+  });
+  expect(screen.getByText("Password changed.")).toBeInTheDocument();
+});
+
+test("change-password form shows the server's rejection", async () => {
+  axios.post.mockRejectedValueOnce({
+    response: { status: 422, data: { detail: "Password must be at least 10 characters." } },
+  });
+  await openChangePassword();
+  expect(screen.getByText("Password must be at least 10 characters.")).toBeInTheDocument();
 });
