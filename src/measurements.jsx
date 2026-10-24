@@ -5,7 +5,6 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, L
 const ROWS = [
   ["cadence", "Cadence"],
   ["step_time", "Step time"],
-  ["stride_time", "Stride time"],
   ["peak_knee_flexion", "Peak knee bend (per stride)"],
   ["step_length", "Step length"],
   ["walking_speed", "Walking speed"],
@@ -64,6 +63,11 @@ export function MeasurementTable({ result }) {
           })}
         </tbody>
       </table>
+      {(result?.notes ?? []).map((note) => (
+        <p key={note} style={{ fontSize: 13, color: "#1a1a2e", marginTop: 12, lineHeight: 1.5 }}>
+          {note}
+        </p>
+      ))}
       <p style={{ fontSize: 12, color: "#64748b", marginTop: 12, lineHeight: 1.5 }}>
         Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error ranges
         for these measurements have not been measured yet.
