@@ -13,9 +13,11 @@ https://gaitscan-frontend-mnt9.vercel.app
 
 - Sign in / create account (password at least 10 characters), change password
 - Video upload with the capture protocol shown up front (side view, landscape, full body)
-- Reference-range modes (Clinical / Runner / Athlete / Elderly) and per-measurement findings
-- Exercise suggestions from a fixed template list
-- Session history with trend charts; clinician dashboard for linked patients
+- Measurements with units: cadence, step and stride time, peak knee bend and hip swing range per leg
+  (step length and walking speed only with a floor calibration), plus a recording-quality summary
+- Videos that can't be measured are rejected with the reason and what to change
+- Session history with a cadence trend (current-version sessions only; older sessions are labelled
+  and show no numbers); clinician dashboard for linked patients
 - Authenticated PDF report download
 
 For how to record a usable video, see the capture protocol in the

@@ -1,17 +1,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import axios from "axios";
-import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts";
+import { CadenceTrend, MeasurementTable, QualitySummary, SessionSummary } from "./measurements.jsx";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -21,6 +10,8 @@ function errorMessage(err, fallback) {
   if (!res) return fallback;
   const detail = res.data?.detail;
   if (typeof detail === "string") return detail;
+  // Quality gate / calibration rejections: { code, message }
+  if (detail && typeof detail === "object" && typeof detail.message === "string") return detail.message;
   // FastAPI validation errors: [{ msg, loc, ... }]
   if (Array.isArray(detail) && detail[0]?.msg) return detail.map((d) => d.msg).join(" ");
   if (res.status === 429) {
@@ -84,12 +75,6 @@ function Disclaimer() {
     </div>
   );
 }
-
-const STATUS_TEXT = {
-  good: "Within reference range",
-  mild: "Near edge of range",
-  flagged: "Outside reference range",
-};
 
 const AuthContext = createContext(null);
 function useAuth() {
@@ -503,7 +488,6 @@ function MainApp() {
   const [progress, setProgress] = useState("");
   const [sessions, setSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [mode, setMode] = useState("Clinical");
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
@@ -531,12 +515,11 @@ function MainApp() {
     setProgress("Uploading video...");
     const form = new FormData();
     form.append("video", file);
-    form.append("mode", mode);
     try {
-      setProgress("Extracting body landmarks from every frame...");
+      setProgress("Finding the body in every frame...");
       const res = await axios.post(`${API}/analyze`, form, {
         onUploadProgress: (e) => {
-          if (e.loaded === e.total) setProgress("Classifying activity and analysing gait...");
+          if (e.loaded === e.total) setProgress("Measuring steps and knee angles...");
         },
       });
       setResults(res.data);
@@ -548,54 +531,6 @@ function MainApp() {
     }
   };
 
-  const riskColors = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
-  const statusColors = { good: "#1D9E75", mild: "#BA7517", flagged: "#E24B4A" };
-  const statusIcons = { good: "✓", mild: "!", flagged: "✕" };
-
-  const symmetryData = results
-    ? [
-        {
-          name: "Knee",
-          value: parseFloat(results.scores.knee_symmetry_index),
-          fill:
-            results.scores.knee_symmetry_index < 10
-              ? "#1D9E75"
-              : results.scores.knee_symmetry_index < 20
-                ? "#BA7517"
-                : "#E24B4A",
-        },
-        {
-          name: "Hip",
-          value: parseFloat(results.scores.hip_symmetry_index),
-          fill:
-            results.scores.hip_symmetry_index < 10
-              ? "#1D9E75"
-              : results.scores.hip_symmetry_index < 20
-                ? "#BA7517"
-                : "#E24B4A",
-        },
-      ]
-    : [];
-
-  const flexionData = results
-    ? [
-        {
-          name: "Left knee",
-          value: parseFloat(results.scores.knee_flexion_range_L),
-          fill: results.scores.knee_flexion_range_L > 50 ? "#1D9E75" : "#E24B4A",
-        },
-        {
-          name: "Right knee",
-          value: parseFloat(results.scores.knee_flexion_range_R),
-          fill: results.scores.knee_flexion_range_R > 50 ? "#1D9E75" : "#E24B4A",
-        },
-      ]
-    : [];
-
-  const trendData = [...sessions].reverse().map((s) => ({
-    date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-    knee_si: s.knee_si,
-  }));
   if (user?.role === "clinician") {
     return (
       <div
@@ -626,15 +561,13 @@ function MainApp() {
               <div>
                 <div style={{ textAlign: "center", marginBottom: "2rem" }}>
                   <h1 style={{ fontSize: 30, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>
-                    Upload a walking or running video
+                    Upload a walking video
                   </h1>
                   <p
                     style={{ fontSize: 14, color: "#666", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}
                   >
-                    {mode === "Clinical" && "General reference ranges — not clinically validated."}
-                    {mode === "Runner" && "Tighter symmetry and higher cadence reference ranges for runners."}
-                    {mode === "Athlete" && "The strictest reference ranges."}
-                    {mode === "Elderly" && "Wider reference ranges intended for older adults."}
+                    Film from the side, phone held still in landscape, whole body in view, walking across the
+                    frame and back. Videos that can't be measured are rejected with the reason.
                   </p>
                 </div>
 
@@ -655,141 +588,6 @@ function MainApp() {
                 )}
 
                 <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-                  <div
-                    style={{
-                      width: 200,
-                      flexShrink: 0,
-                      background: "#fff",
-                      border: "1px solid #eee",
-                      borderRadius: 16,
-                      padding: "1rem",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: "#aaa",
-                        textTransform: "uppercase",
-                        letterSpacing: 1,
-                        marginBottom: 4,
-                        paddingLeft: 4,
-                      }}
-                    >
-                      Analysis Mode
-                    </div>
-                    {[
-                      {
-                        key: "Clinical",
-                        icon: "🩺",
-                        label: "Clinical",
-                        desc: "General reference",
-                        bullets: ["Balanced reference ranges", "All activity types"],
-                      },
-                      {
-                        key: "Runner",
-                        icon: "🏃",
-                        label: "Runner",
-                        desc: "Runner reference",
-                        bullets: ["Tighter symmetry", "Higher cadence reference", "Running drills"],
-                      },
-                      {
-                        key: "Athlete",
-                        icon: "⚡",
-                        label: "Athlete",
-                        desc: "Strictest ranges",
-                        bullets: ["Strictest reference ranges", "Advanced exercises"],
-                      },
-                      {
-                        key: "Elderly",
-                        icon: "🧓",
-                        label: "Elderly",
-                        desc: "Wider ranges",
-                        bullets: ["Wider reference ranges", "Low-impact exercises"],
-                      },
-                    ].map(({ key, icon, label, desc, bullets }) => {
-                      const isSelected = mode === key;
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => setMode(key)}
-                          style={{
-                            width: "100%",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            borderRadius: 10,
-                            padding: "10px 12px",
-                            border: isSelected ? "2px solid #378ADD" : "1px solid #e8ecf0",
-                            background: isSelected ? "#EBF4FF" : "#f8fafc",
-                            borderLeft: isSelected ? "4px solid #378ADD" : "4px solid transparent",
-                            transition: "all 0.15s",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              marginBottom: isSelected ? 8 : 0,
-                            }}
-                          >
-                            <span style={{ fontSize: 18 }}>{icon}</span>
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  color: isSelected ? "#185FA5" : "#333",
-                                  lineHeight: 1.2,
-                                }}
-                              >
-                                {label}
-                                {isSelected && (
-                                  <span
-                                    style={{
-                                      marginLeft: 6,
-                                      fontSize: 10,
-                                      background: "#378ADD",
-                                      color: "#fff",
-                                      padding: "1px 6px",
-                                      borderRadius: 6,
-                                    }}
-                                  >
-                                    ✓
-                                  </span>
-                                )}
-                              </div>
-                              <div
-                                style={{ fontSize: 11, color: isSelected ? "#378ADD" : "#999", marginTop: 1 }}
-                              >
-                                {desc}
-                              </div>
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <ul
-                              style={{
-                                margin: 0,
-                                paddingLeft: 16,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 3,
-                              }}
-                            >
-                              {bullets.map((b) => (
-                                <li key={b} style={{ fontSize: 11, color: "#185FA5", lineHeight: 1.4 }}>
-                                  {b}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
                   <div style={{ flex: 1 }}>
                     <div
                       onDragOver={(e) => {
@@ -890,416 +688,14 @@ function MainApp() {
                   ← Analyse another video
                 </button>
 
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #eee",
-                    borderRadius: 16,
-                    padding: "1.5rem",
-                    marginBottom: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 20,
-                  }}
+                <MeasurementTable result={results.result} />
+                <QualitySummary quality={results.result?.quality} />
+                <button
+                  onClick={() => downloadReport(jobId)}
+                  style={{ ...linkButton, fontSize: 14, marginLeft: 0, display: "inline-block" }}
                 >
-                  <div style={{ fontSize: 52 }}>{results.activity.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#aaa",
-                        textTransform: "uppercase",
-                        letterSpacing: 1,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Activity detected
-                    </div>
-                    <div style={{ fontSize: 26, fontWeight: 700, color: "#1a1a2e" }}>
-                      {results.activity.activity}
-                    </div>
-                    <div style={{ fontSize: 13, color: "#666", marginTop: 4, lineHeight: 1.5 }}>
-                      {results.activity.description}
-                    </div>
-                    {results.mode && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          display: "inline-block",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          background: "#E6F1FB",
-                          color: "#185FA5",
-                          padding: "3px 10px",
-                          borderRadius: 10,
-                        }}
-                      >
-                        {results.mode} Mode — {results.mode_description}
-                      </div>
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      background: "#f7f8fc",
-                      borderRadius: 12,
-                      padding: "12px 20px",
-                    }}
-                  >
-                    <div style={{ fontSize: 11, color: "#aaa", marginBottom: 4 }}>Confidence</div>
-                    <div style={{ fontSize: 28, fontWeight: 700, color: "#378ADD" }}>
-                      {results.activity.confidence}%
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #eee",
-                    borderRadius: 16,
-                    padding: "1.5rem",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "#aaa",
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                      marginBottom: 12,
-                    }}
-                  >
-                    Measurement summary
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 20,
-                      fontWeight: 700,
-                      color: riskColors[results.risk_color],
-                      marginBottom: 8,
-                    }}
-                  >
-                    {results.risk_label}
-                  </div>
-                  <div style={{ fontSize: 14, color: "#555", lineHeight: 1.6 }}>{results.risk_meaning}</div>
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 8 }}>
-                    Experimental measurements from a single 2D video. Not clinically validated.
-                  </div>
-                  <div style={{ marginTop: 16 }}>
-                    <button
-                      onClick={() => downloadReport(jobId)}
-                      style={{
-                        display: "inline-block",
-                        background: "#378ADD",
-                        color: "#fff",
-                        padding: "9px 20px",
-                        borderRadius: 8,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Download PDF report
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #eee",
-                    borderRadius: 16,
-                    padding: "1.5rem",
-                    marginBottom: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "#aaa",
-                      textTransform: "uppercase",
-                      letterSpacing: 1,
-                      marginBottom: 16,
-                    }}
-                  >
-                    Measurements
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {results.findings.map((f, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          gap: 14,
-                          padding: "14px",
-                          borderRadius: 10,
-                          background:
-                            f.status === "good" ? "#f6fdf9" : f.status === "mild" ? "#fffbf0" : "#fff5f5",
-                          border: `1px solid ${f.status === "good" ? "#d0f0e0" : f.status === "mild" ? "#fce8a0" : "#ffd0d0"}`,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: "50%",
-                            flexShrink: 0,
-                            background: statusColors[f.status],
-                            color: "#fff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 13,
-                            fontWeight: 700,
-                            marginTop: 2,
-                          }}
-                        >
-                          {statusIcons[f.status]}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e" }}>
-                              {f.metric}
-                            </span>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: statusColors[f.status] }}>
-                              {f.value}
-                            </span>
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: statusColors[f.status],
-                              marginBottom: 2,
-                            }}
-                          >
-                            {STATUS_TEXT[f.status]}
-                          </div>
-                          <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6 }}>
-                            {f.plain_english}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                  <div
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #eee",
-                      borderRadius: 12,
-                      padding: "1.25rem",
-                    }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>
-                      Symmetry Index (%)
-                    </div>
-                    <div style={{ fontSize: 11, color: "#999", marginBottom: 16 }}>
-                      Reference: under 10% (not clinically validated)
-                    </div>
-                    <ResponsiveContainer width="100%" height={160}>
-                      <BarChart data={symmetryData} barSize={40}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} domain={[0, 25]} />
-                        <Tooltip formatter={(v) => [`${v}%`, "Asymmetry"]} />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                          {symmetryData.map((entry, i) => (
-                            <Cell key={i} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #eee",
-                      borderRadius: 12,
-                      padding: "1.25rem",
-                    }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>
-                      Knee Flexion Range (°)
-                    </div>
-                    <div style={{ fontSize: 11, color: "#999", marginBottom: 16 }}>
-                      Reference: above 50° for walking (not clinically validated)
-                    </div>
-                    <ResponsiveContainer width="100%" height={160}>
-                      <BarChart data={flexionData} barSize={40}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} domain={[0, 120]} />
-                        <Tooltip formatter={(v) => [`${v}°`, "Flexion"]} />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                          {flexionData.map((entry, i) => (
-                            <Cell key={i} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {results.recommendations.length > 0 && (
-                  <div
-                    style={{
-                      background: "#fffbf0",
-                      border: "1px solid #fce8a0",
-                      borderRadius: 12,
-                      padding: "1.25rem",
-                      marginBottom: 16,
-                    }}
-                  >
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#854F0B", marginBottom: 12 }}>
-                      Discussion points
-                    </div>
-                    {results.recommendations.map((r, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          marginBottom: 8,
-                          fontSize: 13,
-                          color: "#633806",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <span style={{ marginTop: 1 }}>→</span> {r}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {results.exercises && results.exercises.length > 0 && (
-                  <div
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #eee",
-                      borderRadius: 16,
-                      padding: "1.5rem",
-                      marginTop: 16,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#aaa",
-                        textTransform: "uppercase",
-                        letterSpacing: 1,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Exercises to discuss with your physiotherapist
-                    </div>
-                    <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
-                      General exercises matched to the measurements above. Not a treatment plan.
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                      {results.exercises.map((ex, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            border: "1px solid #eee",
-                            borderRadius: 12,
-                            padding: "1.25rem",
-                            borderLeft: "3px solid #378ADD",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "flex-start",
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <div
-                                style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: "50%",
-                                  background: "#E6F1FB",
-                                  color: "#185FA5",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {i + 1}
-                              </div>
-                              <span style={{ fontSize: 15, fontWeight: 600, color: "#1a1a2e" }}>
-                                {ex.name}
-                              </span>
-                            </div>
-                            <div style={{ display: "flex", gap: 6 }}>
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  padding: "2px 8px",
-                                  borderRadius: 10,
-                                  fontWeight: 500,
-                                  background:
-                                    ex.difficulty === "Easy"
-                                      ? "#EAF3DE"
-                                      : ex.difficulty === "Moderate"
-                                        ? "#FAEEDA"
-                                        : "#FAECE7",
-                                  color:
-                                    ex.difficulty === "Easy"
-                                      ? "#27500A"
-                                      : ex.difficulty === "Moderate"
-                                        ? "#633806"
-                                        : "#712B13",
-                                }}
-                              >
-                                {ex.difficulty}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  padding: "2px 8px",
-                                  borderRadius: 10,
-                                  background: "#f0f0f0",
-                                  color: "#666",
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {ex.muscle}
-                              </span>
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 13,
-                              color: "#185FA5",
-                              background: "#E6F1FB",
-                              padding: "8px 12px",
-                              borderRadius: 8,
-                              marginBottom: 10,
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            <strong>Why this may help:</strong> {ex.why}
-                          </div>
-                          <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6 }}>
-                            <strong>How to do it:</strong> {ex.instructions}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  Download PDF report →
+                </button>
               </div>
             )}
           </div>
@@ -1345,41 +741,7 @@ function MainApp() {
               </div>
             )}
 
-            {!loadingHistory && (sessions || []).length >= 2 && (
-              <div style={{ marginBottom: 28 }}>
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #eee",
-                    borderRadius: 12,
-                    padding: "1.25rem",
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>
-                    Knee Symmetry Over Time
-                  </div>
-                  <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>
-                    Reference: under 10% (not clinically validated)
-                  </div>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <LineChart data={trendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip formatter={(v) => [`${v}%`, "Knee SI"]} />
-                      <Line
-                        type="monotone"
-                        dataKey="knee_si"
-                        stroke="#378ADD"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                        name="Knee SI %"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
+            {!loadingHistory && <CadenceTrend sessions={sessions} />}
 
             {!loadingHistory && (sessions || []).length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1416,7 +778,7 @@ function MainApp() {
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 15, color: "#1a1a2e", marginBottom: 3 }}>
-                          {s.patient_name} — {s.activity}
+                          {s.patient_name}
                         </div>
                         <div style={{ fontSize: 12, color: "#94a3b8" }}>
                           {s.created_at &&
@@ -1428,41 +790,15 @@ function MainApp() {
                               minute: "2-digit",
                             })}
                         </div>
-                        <div
-                          style={{ fontSize: 12, color: "#64748b", marginTop: 3, display: "flex", gap: 16 }}
-                        >
-                          <span>
-                            Cadence: <strong>{s.cadence}</strong> steps/min
-                          </span>
-                          <span>
-                            Knee SI:{" "}
-                            <strong
-                              style={{
-                                color: s.knee_si < 10 ? "#1D9E75" : s.knee_si < 20 ? "#BA7517" : "#E24B4A",
-                              }}
-                            >
-                              {s.knee_si}%
-                            </strong>
-                          </span>
-                          <span>
-                            Hip SI: <strong>{s.hip_si}%</strong>
-                          </span>
-                        </div>
+                        <SessionSummary session={s} />
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: riskColors[s.risk_color] || "#64748b",
-                        }}
-                      >
-                        {s.risk_label}
-                      </div>
-                      <button onClick={() => downloadReport(s.id)} style={linkButton}>
-                        Download report →
-                      </button>
+                      {!s.legacy && (
+                        <button onClick={() => downloadReport(s.id)} style={linkButton}>
+                          Download report →
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1563,8 +899,6 @@ function ClinicianDashboard() {
   const [patientSessions, setPatientSessions] = useState(null);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
-  const riskColors = { green: "#1D9E75", amber: "#BA7517", red: "#E24B4A" };
-
   const fetchPatients = async () => {
     setLoading(true);
     try {
@@ -1613,13 +947,6 @@ function ClinicianDashboard() {
     }
     setLoadingSessions(false);
   };
-
-  const trendData = patientSessions?.sessions
-    ? [...patientSessions.sessions].reverse().map((s) => ({
-        date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-        knee_si: s.knee_si,
-      }))
-    : [];
 
   if (selectedPatient) {
     return (
@@ -1676,29 +1003,7 @@ function ClinicianDashboard() {
           <div style={{ textAlign: "center", padding: "3rem", color: "#94a3b8" }}>Loading sessions...</div>
         )}
 
-        {!loadingSessions && trendData.length >= 2 && (
-          <div style={{ marginBottom: 20 }}>
-            <div
-              style={{ background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: "1.25rem" }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4 }}>
-                Knee Symmetry Over Time
-              </div>
-              <div style={{ fontSize: 11, color: "#999", marginBottom: 12 }}>
-                Reference: under 10% (not clinically validated)
-              </div>
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => [`${v}%`, "Knee SI"]} />
-                  <Line type="monotone" dataKey="knee_si" stroke="#378ADD" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
+        {!loadingSessions && <CadenceTrend sessions={patientSessions?.sessions} />}
 
         {!loadingSessions && patientSessions?.sessions?.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1716,9 +1021,6 @@ function ClinicianDashboard() {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: "#1a1a2e", marginBottom: 3 }}>
-                    {s.activity}
-                  </div>
                   <div style={{ fontSize: 12, color: "#94a3b8" }}>
                     {new Date(s.created_at).toLocaleString("en-GB", {
                       day: "numeric",
@@ -1728,32 +1030,14 @@ function ClinicianDashboard() {
                       minute: "2-digit",
                     })}
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 3, display: "flex", gap: 16 }}>
-                    <span>
-                      Knee SI:{" "}
-                      <strong
-                        style={{ color: s.knee_si < 10 ? "#1D9E75" : s.knee_si < 20 ? "#BA7517" : "#E24B4A" }}
-                      >
-                        {s.knee_si}%
-                      </strong>
-                    </span>
-                    <span>
-                      Hip SI: <strong>{s.hip_si}%</strong>
-                    </span>
-                    <span>
-                      Cadence: <strong>{s.cadence}</strong>
-                    </span>
-                  </div>
+                  <SessionSummary session={s} />
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div
-                    style={{ fontSize: 13, fontWeight: 600, color: riskColors[s.risk_color] || "#64748b" }}
-                  >
-                    {s.risk_label}
-                  </div>
-                  <button onClick={() => downloadReport(s.id)} style={linkButton}>
-                    Download report →
-                  </button>
+                  {!s.legacy && (
+                    <button onClick={() => downloadReport(s.id)} style={linkButton}>
+                      Download report →
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1913,23 +1197,12 @@ function ClinicianDashboard() {
                   <div style={{ fontSize: 12, color: "#94a3b8" }}>{p.email}</div>
                   <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
                     {p.session_count} session{p.session_count !== 1 ? "s" : ""}
-                    {p.latest_activity && ` · Latest: ${p.latest_activity}`}
+                    {p.latest_session_at &&
+                      ` · Latest: ${new Date(p.latest_session_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
                   </div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                <div style={{ textAlign: "right", minWidth: 60 }}>
-                  {p.session_count > 0 ? (
-                    <>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e" }}>
-                        {p.latest_knee_si}%
-                      </div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>latest knee SI</div>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 12, color: "#94a3b8" }}>No sessions</div>
-                  )}
-                </div>
                 <span style={{ color: "#ccc", fontSize: 18 }}>›</span>
               </div>
             </div>
