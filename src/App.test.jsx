@@ -248,6 +248,51 @@ test("no pass section when no pass was long enough to time alone", async () => {
   expect(screen.queryByRole("region", { name: /each pass/i })).toBeNull();
 });
 
+test("floor calibration: two tapped points and a distance are sent in video pixels", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  render(<App />);
+  fireEvent.click(screen.getByRole("checkbox", { name: /marked two points on the floor/i }));
+  await uploadVideo();
+  expect(axios.post).not.toHaveBeenCalled();
+  const video = await screen.findByTestId("calibration-video");
+  Object.defineProperty(video, "videoWidth", { value: 1920 });
+  Object.defineProperty(video, "videoHeight", { value: 1080 });
+  fireEvent(video, new Event("loadedmetadata"));
+  const surface = screen.getByTestId("calibration-surface");
+  surface.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 960,
+    height: 540,
+    right: 960,
+    bottom: 540,
+  });
+  const analyse = screen.getByRole("button", { name: /analyse with calibration/i });
+  expect(analyse).toBeDisabled();
+  fireEvent.click(surface, { clientX: 100, clientY: 500 });
+  fireEvent.click(surface, { clientX: 700, clientY: 500 });
+  fireEvent.change(screen.getByLabelText(/distance between the points/i), { target: { value: "4" } });
+  expect(analyse).toBeEnabled();
+  await act(async () => {
+    fireEvent.click(analyse);
+  });
+  const form = axios.post.mock.calls[0][1];
+  expect([
+    ...["calib_x1", "calib_y1", "calib_x2", "calib_y2", "calib_distance_m"].map((k) => form.get(k)),
+  ]).toEqual(["200", "1000", "1400", "1000", "4"]);
+  expect(await screen.findByRole("heading", { name: "Measurements" })).toBeInTheDocument();
+});
+
+test("without the calibration option, choosing a video analyses it straight away", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  render(<App />);
+  await uploadVideo();
+  const form = axios.post.mock.calls[0][1];
+  expect(form.has("calib_x1")).toBe(false);
+});
+
 test("results show the analysis notes", async () => {
   signIn();
   const note = "Left and right legs couldn't be told apart reliably in this video.";
