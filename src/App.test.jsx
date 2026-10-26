@@ -174,6 +174,35 @@ test("results show measurements with units and no removed metrics", async () => 
   expect(text).not.toMatch(REMOVED);
 });
 
+test.each([
+  [
+    "with the accuracy block",
+    {
+      ...RESULT,
+      accuracy: { peak_knee_flexion: { status: "not_yet_validated", note: "No knee-angle reference yet." } },
+    },
+  ],
+  ["stored before the accuracy block", RESULT],
+])("results mark knee bend as not yet validated (%s)", async (_, result) => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result } });
+  render(<App />);
+  await uploadVideo();
+  const row = await screen.findByRole("row", { name: /peak knee bend/i });
+  expect(row.textContent).toMatch(/not yet validated/i);
+  expect(screen.getByRole("row", { name: /cadence/i }).textContent).not.toMatch(/not yet validated/i);
+});
+
+test("history marks knee bend as not yet validated", async () => {
+  signIn();
+  axios.get.mockResolvedValue({ data: [SESSION] });
+  render(<App />);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /history/i }));
+  });
+  expect(await screen.findByText(/peak knee bend l\/r \(not yet validated\)/i)).toBeInTheDocument();
+});
+
 test("results show the analysis notes", async () => {
   signIn();
   const note = "Left and right legs couldn't be told apart reliably in this video.";
