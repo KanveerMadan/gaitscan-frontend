@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
 import { Brand, Disclaimer } from "@/components/app-shell";
@@ -84,6 +84,11 @@ function LoginPage({ onSwitch }) {
         <Button variant="link" className="h-auto p-0" onClick={onSwitch}>
           Create one
         </Button>
+      </p>
+      <p className="text-center text-sm">
+        <Link to="/demo" className="text-primary underline-offset-4 hover:underline">
+          See an example result
+        </Link>
       </p>
     </AuthLayout>
   );

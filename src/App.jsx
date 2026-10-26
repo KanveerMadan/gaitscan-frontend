@@ -10,7 +10,7 @@ import { CompareScreen } from "@/screens/compare";
 import { HistoryScreen } from "@/screens/history";
 import { SessionScreen } from "@/screens/session";
 import { SetupScreen } from "@/screens/setup";
-import { WelcomeScreen } from "@/onboarding/welcome";
+import { DemoPage, WelcomeScreen } from "@/onboarding/welcome";
 
 const PATIENT_SECTIONS = [
   { to: "/", label: "Analyse", icon: VideoCamera, end: true },
@@ -49,9 +49,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AuthGate>
-          <MainApp />
-        </AuthGate>
+        <Routes>
+          <Route path="/demo" element={<DemoPage />} />
+          <Route
+            path="*"
+            element={
+              <AuthGate>
+                <MainApp />
+              </AuthGate>
+            }
+          />
+        </Routes>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { ArrowRight } from "@phosphor-icons/react";
-import { DISCLAIMER } from "@/components/app-shell";
+import { Brand, Disclaimer, DISCLAIMER } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,27 @@ function Setup() {
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+// Public page (no account): the example result, for anyone deciding whether to sign up.
+export function DemoPage() {
+  return (
+    <div className="min-h-[100dvh] bg-background">
+      <header className="border-b bg-surface">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
+          <Brand />
+          <Button asChild size="sm">
+            <Link to="/">Create an account</Link>
+          </Button>
+        </div>
+      </header>
+      <Disclaimer />
+      <main className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Example result</h1>
+        <Example />
+      </main>
+    </div>
   );
 }
 
