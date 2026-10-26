@@ -283,7 +283,11 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Label Session
+     * @description The owner's notes and tags. Only the owner may edit (a linked clinician sees them).
+     */
+    patch: operations["label_session_sessions__session_id__patch"];
     trace?: never;
   };
   "/status": {
@@ -478,6 +482,13 @@ export interface components {
       accuracy: {
         [key: string]: unknown;
       };
+      /**
+       * Curves
+       * @default {}
+       */
+      curves: {
+        [key: string]: unknown;
+      };
       /** Metrics */
       metrics: {
         [key: string]: unknown;
@@ -528,11 +539,29 @@ export interface components {
       legacy: boolean;
       /** Note */
       note: string | null;
+      /** Notes */
+      notes?: string | null;
       /** Patient Name */
       patient_name: string | null;
       /** Pipeline Version */
       pipeline_version: string;
       result: components["schemas"]["Result"] | null;
+      /**
+       * Tags
+       * @default []
+       */
+      tags: string[];
+    };
+    /**
+     * SessionLabels
+     * @description PATCH /sessions/{id}: fields left out are kept; an empty note clears it. Tags are trimmed,
+     *     lower-cased and de-duplicated in order.
+     */
+    SessionLabels: {
+      /** Notes */
+      notes?: string | null;
+      /** Tags */
+      tags?: string[] | null;
     };
     /** SessionOut */
     SessionOut: {
@@ -544,11 +573,18 @@ export interface components {
       legacy: boolean;
       /** Note */
       note: string | null;
+      /** Notes */
+      notes?: string | null;
       /** Patient Name */
       patient_name: string | null;
       /** Pipeline Version */
       pipeline_version: string;
       result: components["schemas"]["Result"] | null;
+      /**
+       * Tags
+       * @default []
+       */
+      tags: string[];
     };
     /** TokenResponse */
     TokenResponse: {
@@ -1015,6 +1051,41 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SessionDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  label_session_sessions__session_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SessionLabels"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SessionOut"];
         };
       };
       /** @description Validation Error */
