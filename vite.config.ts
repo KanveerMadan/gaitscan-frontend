@@ -16,6 +16,7 @@ export default defineConfig(({ command, mode }) => {
       environment: "jsdom",
       globals: true,
       setupFiles: "./src/setupTests.js",
+      exclude: ["e2e/**", "node_modules/**"],
       env: { VITE_API_BASE_URL: "http://api.test" },
     },
   };
