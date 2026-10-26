@@ -203,6 +203,51 @@ test("history marks knee bend as not yet validated", async () => {
   expect(await screen.findByText(/peak knee bend l\/r \(not yet validated\)/i)).toBeInTheDocument();
 });
 
+test("results show each pass and the spread between passes", async () => {
+  signIn();
+  const passes = [
+    {
+      pass: 1,
+      direction: "left_to_right",
+      steps: 6,
+      cadence: { value: 110.2, unit: "steps/min" },
+      step_time: { value: 0.544, sd: 0.01, n: 6, unit: "s" },
+    },
+    {
+      pass: 2,
+      direction: "right_to_left",
+      steps: 7,
+      cadence: { value: 108.4, unit: "steps/min" },
+      step_time: { value: 0.553, sd: 0.01, n: 7, unit: "s" },
+    },
+  ];
+  const pass_variability = {
+    passes: 2,
+    cadence_sd: { value: 1.3, unit: "steps/min" },
+    step_time_sd: { value: 0.006, unit: "s" },
+  };
+  axios.post.mockResolvedValueOnce({
+    data: { ...ANALYSIS, result: { ...RESULT, passes, pass_variability } },
+  });
+  render(<App />);
+  await uploadVideo();
+  const section = await screen.findByRole("region", { name: /each pass/i });
+  expect(section.textContent).toMatch(/left to right/i);
+  expect(section.textContent).toMatch(/108\.4 steps\/min/);
+  expect(section.textContent).toMatch(/spread between passes.*1\.3 steps\/min/i);
+});
+
+test("no pass section when no pass was long enough to time alone", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({
+    data: { ...ANALYSIS, result: { ...RESULT, passes: [], pass_variability: null } },
+  });
+  render(<App />);
+  await uploadVideo();
+  await screen.findByRole("heading", { name: "Measurements" });
+  expect(screen.queryByRole("region", { name: /each pass/i })).toBeNull();
+});
+
 test("results show the analysis notes", async () => {
   signIn();
   const note = "Left and right legs couldn't be told apart reliably in this video.";
