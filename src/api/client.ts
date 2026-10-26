@@ -47,12 +47,13 @@ export const api = {
 };
 
 const TERMINAL = new Set(["done", "rejected", "failed"]);
+export const polling = { intervalMs: 1500 }; // tests shorten it
 
 // Poll a queued analysis until it finishes: at once, then every `intervalMs`.
 export async function waitForAnalysis(
   jobId: string,
   onStatus: (s: JobStatus) => void = () => {},
-  intervalMs = 1500,
+  intervalMs = polling.intervalMs,
 ): Promise<JobStatus> {
   for (;;) {
     const status = await api.analysisStatus(jobId);

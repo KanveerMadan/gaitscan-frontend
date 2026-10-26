@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import axios from "axios";
 import App from "./App";
+import { polling } from "./api/client";
 
 vi.mock("axios", () => {
   const m = {
@@ -107,6 +108,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   window.history.pushState({}, "", "/"); // the app routes on the URL, which jsdom keeps between tests
+  polling.intervalMs = 1500;
   localStorage.clear();
   vi.clearAllMocks();
   axios.defaults.headers.common = {};
@@ -365,6 +367,7 @@ test("a rejected video shows the quality gate's reason", async () => {
 });
 
 test("upload queues an analysis and polls its status until it is done", async () => {
+  polling.intervalMs = 10;
   signIn();
   axios.post.mockResolvedValueOnce({ data: QUEUED });
   axios.get
@@ -377,7 +380,7 @@ test("upload queues an analysis and polls its status until it is done", async ()
   render(<App />);
   await uploadVideo();
   expect(axios.post.mock.calls[0][0]).toBe("http://api.test/analyses");
-  await screen.findByRole("heading", { name: "Measurements" }, { timeout: 4000 });
+  await screen.findByRole("heading", { name: "Measurements" });
   expect(axios.get.mock.calls.map(([u]) => u)).toEqual([
     "http://api.test/analyses/11111111-2222-3333-4444-555555555555",
     "http://api.test/analyses/11111111-2222-3333-4444-555555555555",
