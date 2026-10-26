@@ -109,6 +109,16 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  button,
+  a,
+  input,
+  label {
+    touch-action: manipulation;
+  }
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;

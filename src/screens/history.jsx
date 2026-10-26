@@ -81,11 +81,13 @@ function JoinClinicianCard() {
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             maxLength={6}
             aria-label="Invite code"
+            autoComplete="off"
+            spellCheck={false}
             placeholder="6-character code"
             className="tabular max-w-48 uppercase tracking-[0.3em]"
           />
           <Button onClick={handleJoin} disabled={loading}>
-            {loading ? "Joining..." : "Join"}
+            {loading ? "Joining…" : "Join"}
           </Button>
         </div>
       </CardContent>

@@ -75,7 +75,7 @@ function LoginPage({ onSwitch }) {
         onKeyDown={onKeyDown}
       />
       <Button onClick={() => submit(form)} disabled={loading}>
-        {loading ? "Signing in..." : "Sign in"}
+        {loading ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
@@ -120,7 +120,7 @@ function RegisterPage({ onSwitch }) {
         onChange={(e) => setForm({ ...form, password: e.target.value })}
       />
       <Button onClick={() => submit(form)} disabled={loading}>
-        {loading ? "Creating account..." : "Create account"}
+        {loading ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}

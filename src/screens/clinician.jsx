@@ -96,7 +96,7 @@ export function ClinicianScreen() {
         </div>
         <Button onClick={generateInvite} disabled={generating}>
           <Plus aria-hidden />
-          {generating ? "Generating..." : "Invite patient"}
+          {generating ? "Generating…" : "Invite patient"}
         </Button>
       </div>
 

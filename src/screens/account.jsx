@@ -50,7 +50,7 @@ export function ChangePasswordForm() {
           />
         </div>
         <Button type="submit" disabled={loading}>
-          {loading ? "Updating..." : "Update password"}
+          {loading ? "Updating…" : "Update password"}
         </Button>
       </div>
       {status && (

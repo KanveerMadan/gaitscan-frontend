@@ -39,6 +39,12 @@ export function AppShell({ sections, current, onSelect, children }) {
 
   return (
     <div className="min-h-[100dvh] bg-background">
+      <a
+        href="#main"
+        className="sr-only rounded-md bg-surface px-3 py-2 text-sm focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-10"
+      >
+        Skip to content
+      </a>
       <header className="border-b bg-surface">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-4">
           <Brand />
@@ -90,7 +96,9 @@ export function AppShell({ sections, current, onSelect, children }) {
         )}
       </header>
       <Disclaimer />
-      <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      <main id="main" className="mx-auto max-w-5xl px-4 py-8">
+        {children}
+      </main>
     </div>
   );
 }

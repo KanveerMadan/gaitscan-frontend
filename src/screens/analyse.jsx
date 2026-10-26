@@ -40,15 +40,15 @@ export function AnalyseScreen() {
 
   const analyse = async (file, calibration = null) => {
     setStage("processing");
-    setProgress("Uploading video...");
+    setProgress("Uploading video…");
     const form = new FormData();
     form.append("video", file);
     for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
     try {
-      setProgress("Finding the body in every frame...");
+      setProgress("Finding the body in every frame…");
       const res = await axios.post(`${API}/analyze`, form, {
         onUploadProgress: (e) => {
-          if (e.loaded === e.total) setProgress("Measuring steps and knee angles...");
+          if (e.loaded === e.total) setProgress("Measuring steps and knee angles…");
         },
       });
       setResults(res.data);
@@ -75,7 +75,7 @@ export function AnalyseScreen() {
   if (stage === "processing") {
     return (
       <div className="flex flex-col gap-3 py-16" role="status" aria-live="polite">
-        <h1 className="text-xl font-semibold tracking-tight">Analysing your video...</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Analysing your video…</h1>
         <p className="text-sm text-muted-foreground">{progress}</p>
         <div className="mt-4 grid gap-3">
           {[0, 1, 2].map((i) => (

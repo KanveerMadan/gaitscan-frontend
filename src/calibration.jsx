@@ -1,6 +1,7 @@
 // Optional floor calibration (backend gaitcore/calibration.py): two points on the floor along the
 // walking line, a known distance apart, marked on a frame of the video. Points are sent in the video's
 // own pixels. Step length and walking speed from it are labelled "not yet validated" by the API.
+// Known limit: marking the points needs a pointer (tap or click); there is no keyboard way yet.
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +72,7 @@ export function CalibrationStep({ file, onAnalyse, onCancel }) {
           <Input
             id="calibration-distance"
             type="number"
+            inputMode="decimal"
             min="0.2"
             max="50"
             step="0.01"
