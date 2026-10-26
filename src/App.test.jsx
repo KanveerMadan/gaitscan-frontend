@@ -240,9 +240,7 @@ test("results show each pass and the spread between passes", async () => {
     cadence_sd: { value: 1.3, unit: "steps/min" },
     step_time_sd: { value: 0.006, unit: "s" },
   };
-  axios.post.mockResolvedValueOnce({
-    data: { ...ANALYSIS, result: { ...RESULT, passes, pass_variability } },
-  });
+  mockAnalysis({ ...ANALYSIS, result: { ...RESULT, passes, pass_variability } });
   render(<App />);
   await uploadVideo();
   const section = await screen.findByRole("region", { name: /each pass/i });
@@ -253,9 +251,7 @@ test("results show each pass and the spread between passes", async () => {
 
 test("no pass section when no pass was long enough to time alone", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({
-    data: { ...ANALYSIS, result: { ...RESULT, passes: [], pass_variability: null } },
-  });
+  mockAnalysis({ ...ANALYSIS, result: { ...RESULT, passes: [], pass_variability: null } });
   render(<App />);
   await uploadVideo();
   await screen.findByRole("heading", { name: "Measurements" });
