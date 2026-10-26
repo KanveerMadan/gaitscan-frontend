@@ -10,6 +10,17 @@ const ROWS = [
   ["walking_speed", "Walking speed"],
 ];
 
+// No reference check yet (backend gaitcore/accuracy.py): knee angles until Phase 8, calibrated
+// distances on simulated walking only. Used for results stored before the API sent `accuracy`.
+const NOT_YET_VALIDATED = new Set(["peak_knee_flexion", "step_length", "walking_speed"]);
+
+function notYetValidated(result, key) {
+  const status = result?.accuracy?.[key]?.status;
+  return status ? status === "not_yet_validated" : NOT_YET_VALIDATED.has(key);
+}
+
+const unvalidated = { display: "block", fontSize: 11, color: "#92400e", marginTop: 2 };
+
 const UNIT = { deg: "°", "steps/min": " steps/min", s: " s", m: " m", "m/s": " m/s" };
 
 function formatValue(item) {
@@ -54,7 +65,10 @@ export function MeasurementTable({ result }) {
             const perLeg = item && ("left" in item || "right" in item);
             return (
               <tr key={key}>
-                <td style={td}>{label}</td>
+                <td style={td}>
+                  {label}
+                  {notYetValidated(result, key) && <span style={unvalidated}>Not yet validated</span>}
+                </td>
                 <td style={td}>{perLeg ? formatValue(item.left) : ""}</td>
                 <td style={td}>{perLeg ? formatValue(item.right) : ""}</td>
                 <td style={td}>{perLeg ? "" : formatValue(item)}</td>
@@ -128,7 +142,8 @@ export function SessionSummary({ session }) {
         Cadence: <strong>{formatValue(m.cadence)}</strong>
       </span>
       <span>
-        Peak knee bend L/R: <strong>{formatValue(m.peak_knee_flexion?.left)}</strong> /{" "}
+        Peak knee bend L/R{notYetValidated(session.result, "peak_knee_flexion") && " (not yet validated)"}:{" "}
+        <strong>{formatValue(m.peak_knee_flexion?.left)}</strong> /{" "}
         <strong>{formatValue(m.peak_knee_flexion?.right)}</strong>
       </span>
     </div>
