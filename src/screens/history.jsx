@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { ArrowClockwise, DownloadSimple, Tray } from "@phosphor-icons/react";
-import { API, downloadReport, errorMessage, formatDate } from "@/api";
+import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,8 +52,8 @@ function JoinClinicianCard() {
     setLoading(true);
     setStatus(null);
     try {
-      const res = await axios.post(`${API}/patient/join`, { code });
-      setStatus({ type: "success", msg: res.data.message });
+      const res = await api.joinClinician({ code });
+      setStatus({ type: "success", msg: res.message });
       setCode("");
     } catch (e) {
       setStatus({ type: "error", msg: errorMessage(e, "Failed to join") });
@@ -102,8 +101,7 @@ export function HistoryScreen() {
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/sessions`);
-      setSessions(res.data || []);
+      setSessions((await api.sessions()) || []);
     } catch {
       setSessions([]);
     }

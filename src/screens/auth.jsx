@@ -1,6 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-import { API, errorMessage } from "@/api";
+import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
 import { Brand, Disclaimer } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
@@ -29,7 +28,7 @@ function Field({ id, label, ...props }) {
   );
 }
 
-function useSubmit(path, fallback) {
+function useSubmit(call, fallback) {
   const { login } = useAuth();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,8 +36,8 @@ function useSubmit(path, fallback) {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API}${path}`, form);
-      login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
+      const res = await call(form);
+      login({ token: res.access_token, role: res.role, name: res.full_name });
     } catch (e) {
       setError(errorMessage(e, fallback));
     }
@@ -49,7 +48,7 @@ function useSubmit(path, fallback) {
 
 function LoginPage({ onSwitch }) {
   const [form, setForm] = useState({ email: "", password: "" });
-  const { error, loading, submit } = useSubmit("/auth/login", "Login failed. Please try again.");
+  const { error, loading, submit } = useSubmit(api.login, "Login failed. Please try again.");
   const onKeyDown = (e) => e.key === "Enter" && submit(form);
   return (
     <AuthLayout heading="Sign in to your account">
@@ -89,7 +88,7 @@ function LoginPage({ onSwitch }) {
 
 function RegisterPage({ onSwitch }) {
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
-  const { error, loading, submit } = useSubmit("/auth/register", "Registration failed. Please try again.");
+  const { error, loading, submit } = useSubmit(api.register, "Registration failed. Please try again.");
   return (
     <AuthLayout heading="Create your account">
       {error && <Alert variant="destructive">{error}</Alert>}

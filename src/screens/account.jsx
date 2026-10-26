@@ -1,6 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-import { API, errorMessage } from "@/api";
+import { api, errorMessage } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +15,8 @@ export function ChangePasswordForm() {
     setLoading(true);
     setStatus(null);
     try {
-      const res = await axios.post(`${API}/auth/change-password`, form);
-      setStatus({ ok: true, msg: res.data?.message || "Password changed." });
+      const res = await api.changePassword(form);
+      setStatus({ ok: true, msg: res?.message || "Password changed." });
       setForm({ current_password: "", new_password: "" });
     } catch (err) {
       setStatus({ ok: false, msg: errorMessage(err, "Could not change the password. Please try again.") });

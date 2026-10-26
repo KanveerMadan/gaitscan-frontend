@@ -20,6 +20,8 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npx eslint . --max-warnings 0 && npx prettier --check .
+      - name: API types match contracts/openapi.json (ADR-008)
+        run: npm run gen:api && git diff --exit-code src/api/schema.d.ts
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Test

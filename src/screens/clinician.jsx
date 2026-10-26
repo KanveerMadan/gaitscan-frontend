@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { ArrowLeft, CaretRight, Copy, Plus } from "@phosphor-icons/react";
-import { API, formatDate } from "@/api";
+import { api, formatDate } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { CadenceTrend } from "@/measurements";
 import { EmptyState, SessionList } from "@/screens/history";
@@ -23,8 +22,7 @@ function PatientDetail({ patient, onBack }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get(`${API}/clinician/patients/${patient.patient_id}/sessions`);
-        setData(res.data);
+        setData(await api.patientSessions(patient.patient_id));
       } catch {
         /* the list stays empty; error states arrive with TanStack Query (ADR-008) */
       }
@@ -63,8 +61,7 @@ export function ClinicianScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get(`${API}/clinician/patients`);
-        setPatients(res.data);
+        setPatients(await api.patients());
       } catch {
         setPatients([]);
       }
@@ -75,8 +72,7 @@ export function ClinicianScreen() {
   const generateInvite = async () => {
     setGenerating(true);
     try {
-      const res = await axios.post(`${API}/clinician/invite`, {});
-      setInviteCode(res.data.code);
+      setInviteCode((await api.invite()).code);
     } catch {
       /* no code is shown; error states arrive with TanStack Query (ADR-008) */
     }

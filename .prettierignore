@@ -1,3 +1,5 @@
 dist
 coverage
 package-lock.json
+# Verbatim copy of the backend's API contract (keep byte-identical)
+contracts/

@@ -1,7 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { ArrowLeft, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
-import { API, downloadReport, errorMessage } from "@/api";
+import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
 import { CalibrationStep } from "@/calibration";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -41,22 +40,22 @@ export function AnalyseScreen() {
   const analyse = async (file, calibration = null) => {
     setStage("processing");
     setProgress("Uploading video…");
-    const form = new FormData();
-    form.append("video", file);
-    for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
     try {
-      setProgress("Finding the body in every frame…");
-      const res = await axios.post(`${API}/analyze`, form, {
-        onUploadProgress: (e) => {
-          if (e.loaded === e.total) setProgress("Measuring steps and knee angles…");
-        },
+      const job = await api.submitAnalysis(file, calibration ?? undefined);
+      setProgress("Waiting for the analysis to start…");
+      const done = await waitForAnalysis(job.job_id, (s) => {
+        if (s.status === "running") setProgress("Finding the body in every frame and measuring the steps…");
       });
-      setResults(res.data);
-      setStage("results");
+      if (done.status === "done" && done.analysis) {
+        setResults(done.analysis);
+        setStage("results");
+        return;
+      }
+      setError(done.rejection?.message || done.error || "Analysis failed. Please try again.");
     } catch (err) {
       setError(errorMessage(err, "Analysis failed. Please try again."));
-      setStage("upload");
     }
+    setStage("upload");
   };
 
   if (stage === "calibrate" && pendingFile) {
