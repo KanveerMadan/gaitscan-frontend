@@ -19,7 +19,14 @@ function notYetValidated(result, key) {
   return status ? status === "not_yet_validated" : NOT_YET_VALIDATED.has(key);
 }
 
-const unvalidated = { display: "block", fontSize: 11, color: "#92400e", marginTop: 2 };
+const unvalidated = { fontSize: 12, color: "#92400e" };
+
+function accuracyText(result, key) {
+  const a = result?.accuracy?.[key];
+  if (a?.status === "validated") return `± ${a.error_95}${UNIT[a.unit] ?? ` ${a.unit}`}`;
+  if (notYetValidated(result, key)) return <span style={unvalidated}>Not yet validated</span>;
+  return "—";
+}
 
 const UNIT = { deg: "°", "steps/min": " steps/min", s: " s", m: " m", "m/s": " m/s" };
 
@@ -57,6 +64,7 @@ export function MeasurementTable({ result }) {
             <th style={th}>Left leg</th>
             <th style={th}>Right leg</th>
             <th style={th}>Both legs</th>
+            <th style={th}>Error range</th>
           </tr>
         </thead>
         <tbody>
@@ -65,13 +73,11 @@ export function MeasurementTable({ result }) {
             const perLeg = item && ("left" in item || "right" in item);
             return (
               <tr key={key}>
-                <td style={td}>
-                  {label}
-                  {notYetValidated(result, key) && <span style={unvalidated}>Not yet validated</span>}
-                </td>
+                <td style={td}>{label}</td>
                 <td style={td}>{perLeg ? formatValue(item.left) : ""}</td>
                 <td style={td}>{perLeg ? formatValue(item.right) : ""}</td>
                 <td style={td}>{perLeg ? "" : formatValue(item)}</td>
+                <td style={td}>{accuracyText(result, key)}</td>
               </tr>
             );
           })}
@@ -83,8 +89,9 @@ export function MeasurementTable({ result }) {
         </p>
       ))}
       <p style={{ fontSize: 12, color: "#64748b", marginTop: 12, lineHeight: 1.5 }}>
-        Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error ranges
-        for these measurements have not been measured yet.
+        Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error range:
+        in an accuracy check on side-view walks from a public dataset (LJMU, Topham et al. 2023), 95% of
+        measurements were within this much of the reference.
         {!("step_length" in m) &&
           " Step length and walking speed need a floor calibration and were not measured."}
       </p>
