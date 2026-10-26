@@ -109,7 +109,7 @@ test("a session's page lets the owner add notes and tags", async () => {
   render(<App />);
   await openHistory();
   await act(async () => {
-    fireEvent.click(await screen.findByRole("link", { name: /1 sep 2026/i }));
+    fireEvent.click(await screen.findByRole("link", { name: /1 sept? 2026/i }));
   });
   await screen.findByRole("heading", { name: "Measurements" });
   fireEvent.change(screen.getByLabelText(/^notes/i), { target: { value: "Tired today" } });
@@ -129,7 +129,7 @@ test("comparing two sessions says whether a difference is larger than repeat wal
   render(<App />);
   await openHistory();
   fireEvent.click(await screen.findByRole("checkbox", { name: /20 oct 2026/i }));
-  fireEvent.click(screen.getByRole("checkbox", { name: /1 sep 2026/i }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /1 sept? 2026/i }));
   await act(async () => {
     fireEvent.click(screen.getByRole("link", { name: /compare/i }));
   });

@@ -106,6 +106,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  window.history.pushState({}, "", "/"); // the app routes on the URL, which jsdom keeps between tests
   localStorage.clear();
   vi.clearAllMocks();
   axios.defaults.headers.common = {};
@@ -212,7 +213,7 @@ test("history marks knee bend as not yet validated", async () => {
   axios.get.mockResolvedValue({ data: [SESSION] });
   render(<App />);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /history/i }));
+    fireEvent.click(screen.getByRole("link", { name: /history/i }));
   });
   expect(await screen.findByText(/peak knee bend l\/r \(not yet validated\)/i)).toBeInTheDocument();
 });
@@ -441,7 +442,7 @@ test("history shows measurements, labels legacy sessions and offers them no repo
   axios.get.mockResolvedValue({ data: [SESSION, LEGACY_SESSION] });
   render(<App />);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /history/i }));
+    fireEvent.click(screen.getByRole("link", { name: /history/i }));
   });
   await screen.findByText(/earlier version: measurements not shown/i);
   const text = document.body.textContent;
