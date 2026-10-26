@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { ArrowLeft, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
 import { CalibrationStep } from "@/calibration";
@@ -170,6 +171,9 @@ export function AnalyseScreen() {
           ))}
         </ol>
         <p className="mt-3 text-xs text-muted-foreground">This side-on view is what the measurements need.</p>
+        <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+          <Link to="/setup">Check your setup with the camera</Link>
+        </Button>
       </aside>
     </div>
   );

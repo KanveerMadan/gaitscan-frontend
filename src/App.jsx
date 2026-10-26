@@ -9,6 +9,7 @@ import { ClinicianScreen } from "@/screens/clinician";
 import { CompareScreen } from "@/screens/compare";
 import { HistoryScreen } from "@/screens/history";
 import { SessionScreen } from "@/screens/session";
+import { SetupScreen } from "@/screens/setup";
 
 const PATIENT_SECTIONS = [
   { to: "/", label: "Analyse", icon: VideoCamera, end: true },
@@ -35,6 +36,7 @@ function MainApp() {
         <Route path="/history" element={<HistoryScreen />} />
         <Route path="/sessions/:id" element={<SessionScreen />} />
         <Route path="/compare/:a/:b" element={<CompareScreen />} />
+        <Route path="/setup" element={<SetupScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>
