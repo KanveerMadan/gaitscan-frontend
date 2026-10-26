@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import axios from "axios";
+import { CalibrationStep } from "./calibration.jsx";
 import {
   CadenceTrend,
   MeasurementTable,
@@ -494,6 +495,8 @@ function MainApp() {
   const [progress, setProgress] = useState("");
   const [sessions, setSessions] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [calibrate, setCalibrate] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
 
   const fetchHistory = async () => {
     setLoadingHistory(true);
@@ -510,17 +513,27 @@ function MainApp() {
     if (tab === "history") fetchHistory();
   }, [tab]);
 
-  const handleFile = async (file) => {
+  const handleFile = (file) => {
     if (!file) return;
     if (!file.name.match(/\.(mp4|mov|avi)$/i)) {
       setError("Please upload a .mp4, .mov or .avi video file.");
       return;
     }
     setError(null);
+    if (calibrate) {
+      setPendingFile(file);
+      setStage("calibrate");
+      return;
+    }
+    analyse(file);
+  };
+
+  const analyse = async (file, calibration = null) => {
     setStage("processing");
     setProgress("Uploading video...");
     const form = new FormData();
     form.append("video", file);
+    for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
     try {
       setProgress("Finding the body in every frame...");
       const res = await axios.post(`${API}/analyze`, form, {
@@ -647,9 +660,38 @@ function MainApp() {
                         onChange={(e) => handleFile(e.target.files[0])}
                       />
                     </div>
+                    <label
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        fontSize: 13,
+                        color: "#475569",
+                        marginTop: 12,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={calibrate}
+                        onChange={(e) => setCalibrate(e.target.checked)}
+                      />
+                      I marked two points on the floor a known distance apart (optional: adds step length and
+                      walking speed)
+                    </label>
                   </div>
                 </div>
               </div>
+            )}
+
+            {stage === "calibrate" && pendingFile && (
+              <CalibrationStep
+                file={pendingFile}
+                onAnalyse={(calibration) => analyse(pendingFile, calibration)}
+                onCancel={() => {
+                  setPendingFile(null);
+                  setStage("upload");
+                }}
+              />
             )}
 
             {stage === "processing" && (
