@@ -45,3 +45,17 @@ test("the walkthrough is reachable from the upload screen", () => {
   render(<App />);
   expect(screen.getByRole("link", { name: /how it works/i })).toHaveAttribute("href", "/welcome");
 });
+
+test("anyone can see an example result without signing up", () => {
+  window.history.pushState({}, "", "/demo");
+  render(<App />);
+  expect(screen.getByRole("heading", { name: /example result/i })).toBeInTheDocument();
+  expect(screen.getByText(/simulated walker/i)).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Measurements" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute("href", "/");
+});
+
+test("the sign-in page links to the example", () => {
+  render(<App />);
+  expect(screen.getByRole("link", { name: /see an example result/i })).toHaveAttribute("href", "/demo");
+});
