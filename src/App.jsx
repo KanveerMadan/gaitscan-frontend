@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { ChartLineUp, Stethoscope, VideoCamera } from "@phosphor-icons/react";
 import { AuthProvider } from "@/auth";
 import { useAuth } from "@/auth-context";
@@ -6,33 +6,49 @@ import { AppShell } from "@/components/app-shell";
 import { AnalyseScreen } from "@/screens/analyse";
 import { AuthGate } from "@/screens/auth";
 import { ClinicianScreen } from "@/screens/clinician";
+import { CompareScreen } from "@/screens/compare";
 import { HistoryScreen } from "@/screens/history";
+import { SessionScreen } from "@/screens/session";
 
 const PATIENT_SECTIONS = [
-  { key: "analyse", label: "Analyse", icon: VideoCamera },
-  { key: "history", label: "History", icon: ChartLineUp },
+  { to: "/", label: "Analyse", icon: VideoCamera, end: true },
+  { to: "/history", label: "History", icon: ChartLineUp },
 ];
-const CLINICIAN_SECTIONS = [{ key: "patients", label: "Patients", icon: Stethoscope }];
+const CLINICIAN_SECTIONS = [{ to: "/patients", label: "Patients", icon: Stethoscope }];
 
 function MainApp() {
   const { user } = useAuth();
-  const clinician = user?.role === "clinician";
-  const [tab, setTab] = useState(clinician ? "patients" : "analyse");
+  if (user?.role === "clinician") {
+    return (
+      <AppShell sections={CLINICIAN_SECTIONS}>
+        <Routes>
+          <Route path="/patients" element={<ClinicianScreen />} />
+          <Route path="*" element={<Navigate to="/patients" replace />} />
+        </Routes>
+      </AppShell>
+    );
+  }
   return (
-    <AppShell sections={clinician ? CLINICIAN_SECTIONS : PATIENT_SECTIONS} current={tab} onSelect={setTab}>
-      {clinician && <ClinicianScreen />}
-      {!clinician && tab === "analyse" && <AnalyseScreen />}
-      {!clinician && tab === "history" && <HistoryScreen />}
+    <AppShell sections={PATIENT_SECTIONS}>
+      <Routes>
+        <Route path="/" element={<AnalyseScreen />} />
+        <Route path="/history" element={<HistoryScreen />} />
+        <Route path="/sessions/:id" element={<SessionScreen />} />
+        <Route path="/compare/:a/:b" element={<CompareScreen />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AppShell>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AuthGate>
-        <MainApp />
-      </AuthGate>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AuthGate>
+          <MainApp />
+        </AuthGate>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

@@ -10,6 +10,7 @@ export type AnalyzeResponse = S["AnalyzeResponse"];
 export type JobQueued = S["JobQueued"];
 export type JobStatus = S["JobStatus"];
 export type SessionOut = S["SessionOut"];
+export type SessionDetail = S["SessionDetail"];
 export type PatientSummary = S["PatientSummary"];
 export type PatientSessions = S["PatientSessions"];
 export type TokenResponse = S["TokenResponse"];
@@ -34,6 +35,9 @@ export const api = {
   },
   analysisStatus: async (jobId: string) => (await axios.get<JobStatus>(`${API}/analyses/${jobId}`)).data,
   sessions: async () => (await axios.get<SessionOut[]>(`${API}/sessions`)).data,
+  session: async (id: string) => (await axios.get<SessionDetail>(`${API}/sessions/${id}`)).data,
+  labelSession: async (id: string, body: S["SessionLabels"]) =>
+    (await axios.patch<SessionOut>(`${API}/sessions/${id}`, body)).data,
   joinClinician: async (body: S["JoinRequest"]) =>
     (await axios.post<{ message: string }>(`${API}/patient/join`, body)).data,
   patients: async () => (await axios.get<PatientSummary[]>(`${API}/clinician/patients`)).data,
