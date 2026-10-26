@@ -293,6 +293,31 @@ test("without the calibration option, choosing a video analyses it straight away
   expect(form.has("calib_x1")).toBe(false);
 });
 
+test("results show the error range next to each validated metric", async () => {
+  signIn();
+  const accuracy = {
+    cadence: {
+      status: "validated",
+      error_95: 4.9,
+      unit: "steps/min",
+      note: "95% of LJMU walks within ±4.9.",
+    },
+    step_time: {
+      status: "validated",
+      error_95: 0.021,
+      unit: "s",
+      note: "95% of LJMU walks within ±0.021 s.",
+    },
+    peak_knee_flexion: { status: "not_yet_validated", note: "No knee-angle reference yet." },
+  };
+  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result: { ...RESULT, accuracy } } });
+  render(<App />);
+  await uploadVideo();
+  expect((await screen.findByRole("row", { name: /cadence/i })).textContent).toMatch(/± 4\.9 steps\/min/);
+  expect(screen.getByRole("row", { name: /step time/i }).textContent).toMatch(/± 0\.021 s/);
+  expect(document.body.textContent).not.toMatch(/have not been measured yet/);
+});
+
 test("results show the analysis notes", async () => {
   signIn();
   const note = "Left and right legs couldn't be told apart reliably in this video.";
