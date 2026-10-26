@@ -92,6 +92,47 @@ export function MeasurementTable({ result }) {
   );
 }
 
+const DIRECTION = { left_to_right: "Left to right", right_to_left: "Right to left" };
+
+export function PassTable({ result }) {
+  const passes = result?.passes ?? [];
+  if (!passes.length) return null;
+  const v = result.pass_variability;
+  return (
+    <section style={card} aria-label="Each pass">
+      <h2 style={{ fontSize: 16, margin: "0 0 8px", color: "#1a1a2e" }}>Each pass</h2>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={th}>Pass</th>
+            <th style={th}>Direction</th>
+            <th style={th}>Steps</th>
+            <th style={th}>Cadence</th>
+            <th style={th}>Step time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {passes.map((p) => (
+            <tr key={p.pass}>
+              <td style={td}>{p.pass}</td>
+              <td style={td}>{DIRECTION[p.direction] ?? p.direction}</td>
+              <td style={td}>{p.steps}</td>
+              <td style={td}>{formatValue(p.cadence)}</td>
+              <td style={td}>{formatValue(p.step_time)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {v && (
+        <p style={{ fontSize: 12, color: "#64748b", marginTop: 12, lineHeight: 1.5 }}>
+          Spread between passes (SD): cadence {formatValue(v.cadence_sd)}, step time{" "}
+          {formatValue(v.step_time_sd)}.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function QualitySummary({ quality }) {
   if (!quality) return null;
   const pct = quality.usable_frame_fraction != null ? Math.round(quality.usable_frame_fraction * 100) : null;

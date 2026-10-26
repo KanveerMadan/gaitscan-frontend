@@ -1,6 +1,12 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import axios from "axios";
-import { CadenceTrend, MeasurementTable, QualitySummary, SessionSummary } from "./measurements.jsx";
+import {
+  CadenceTrend,
+  MeasurementTable,
+  PassTable,
+  QualitySummary,
+  SessionSummary,
+} from "./measurements.jsx";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -689,6 +695,7 @@ function MainApp() {
                 </button>
 
                 <MeasurementTable result={results.result} />
+                <PassTable result={results.result} />
                 <QualitySummary quality={results.result?.quality} />
                 <button
                   onClick={() => downloadReport(jobId)}
