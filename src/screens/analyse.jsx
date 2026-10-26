@@ -174,6 +174,9 @@ export function AnalyseScreen() {
         <Button asChild variant="outline" size="sm" className="mt-4 w-full">
           <Link to="/setup">Check your setup with the camera</Link>
         </Button>
+        <Button asChild variant="link" size="sm" className="mt-1 w-full">
+          <Link to="/welcome">How it works</Link>
+        </Button>
       </aside>
     </div>
   );

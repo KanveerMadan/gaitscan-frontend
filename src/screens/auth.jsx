@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
 import { Brand, Disclaimer } from "@/components/app-shell";
@@ -28,8 +29,9 @@ function Field({ id, label, ...props }) {
   );
 }
 
-function useSubmit(call, fallback) {
+function useSubmit(call, fallback, then = "") {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const submit = async (form) => {
@@ -37,6 +39,7 @@ function useSubmit(call, fallback) {
     setError("");
     try {
       const res = await call(form);
+      if (then) navigate(then);
       login({ token: res.access_token, role: res.role, name: res.full_name });
     } catch (e) {
       setError(errorMessage(e, fallback));
@@ -88,7 +91,11 @@ function LoginPage({ onSwitch }) {
 
 function RegisterPage({ onSwitch }) {
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
-  const { error, loading, submit } = useSubmit(api.register, "Registration failed. Please try again.");
+  const { error, loading, submit } = useSubmit(
+    api.register,
+    "Registration failed. Please try again.",
+    "/welcome",
+  );
   return (
     <AuthLayout heading="Create your account">
       {error && <Alert variant="destructive">{error}</Alert>}
