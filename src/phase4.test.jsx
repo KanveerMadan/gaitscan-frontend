@@ -149,3 +149,18 @@ test("a difference within repeat-walk variation is labelled as such", async () =
   expect(row.textContent).toMatch(/within/i);
   expect(within(row).queryByText(/larger than/i)).toBeNull();
 });
+
+test("a session can be deleted from its page after a confirmation", async () => {
+  routes([NEW, OLD]);
+  axios.delete = vi.fn(async () => ({ status: 204 }));
+  window.history.pushState({}, "", "/sessions/old");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Measurements" });
+  fireEvent.click(screen.getByRole("button", { name: /delete this session/i }));
+  expect(axios.delete).not.toHaveBeenCalled();
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /yes, delete it/i }));
+  });
+  expect(axios.delete).toHaveBeenCalledWith("http://api.test/sessions/old");
+  expect(await screen.findByRole("heading", { name: /your walking/i })).toBeInTheDocument();
+});
