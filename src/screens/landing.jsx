@@ -1,5 +1,6 @@
 // What a signed-out visitor sees: what GaitScan does, how accurate it is (the real figures from the
 // backend's `make evaluate`), and the sign-in card right there for people who already have an account.
+import { Link } from "react-router";
 import { Camera, ChartLineUp, PersonSimpleWalk } from "@phosphor-icons/react";
 import { Brand, Disclaimer } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +90,10 @@ export function Landing({ card }) {
           </div>
           <p className="mt-6 max-w-[70ch] text-xs leading-relaxed text-muted-foreground">
             Checked on the LJMU gait dataset (Topham et al. 2023, Scientific Data, CC BY 4.0): side-view walks
-            of 57 adults. Accuracy on your own phone video depends on following the recording guidance.
+            of 57 adults. Accuracy on your own phone video depends on following the recording guidance.{" "}
+            <Link to="/learn" className="text-primary underline underline-offset-4">
+              How each measurement is taken
+            </Link>
           </p>
         </section>
       </main>

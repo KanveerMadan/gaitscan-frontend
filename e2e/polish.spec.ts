@@ -137,6 +137,11 @@ for (const scheme of ["light", "dark"] as const) {
     await page.goto("/demo");
     await expect(page.getByRole("heading").first()).toBeVisible();
     expect(await seriousProblems(page), "demo").toEqual([]);
+    for (const path of ["/learn", "/learn/cadence", "/learn/peak-knee-flexion"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      expect(await seriousProblems(page), path).toEqual([]);
+    }
     await signIn(page);
     for (const [path, heading] of SCREENS) {
       await page.goto(path);

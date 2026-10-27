@@ -1,16 +1,17 @@
 // Display of analysis results. Only measurements the API returns are shown, with their units and the
 // error range from the API's accuracy block; there are no reference colours, scores or labels.
+import { Link } from "react-router";
 import { Info, Warning } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const ROWS = [
-  ["cadence", "Cadence"],
-  ["step_time", "Step time"],
-  ["peak_knee_flexion", "Peak knee bend (per stride)"],
-  ["step_length", "Step length"],
-  ["walking_speed", "Walking speed"],
+  ["cadence", "Cadence", "cadence"],
+  ["step_time", "Step time", "step-time"],
+  ["peak_knee_flexion", "Peak knee bend (per stride)", "peak-knee-flexion"],
+  ["step_length", "Step length", "step-length"],
+  ["walking_speed", "Walking speed", "walking-speed"],
 ];
 
 // No reference check yet (backend gaitcore/accuracy.py): knee angles until Phase 8, calibrated
@@ -68,12 +69,16 @@ export function MeasurementTable({ result }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ROWS.filter(([key]) => key in m).map(([key, label]) => {
+            {ROWS.filter(([key]) => key in m).map(([key, label, slug]) => {
               const item = m[key];
               const perLeg = item && ("left" in item || "right" in item);
               return (
                 <TableRow key={key}>
-                  <TableCell className="font-medium">{label}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link to={`/learn/${slug}`} className="underline-offset-4 hover:underline">
+                      {label}
+                    </Link>
+                  </TableCell>
                   <TableCell>{perLeg && <Value item={item.left} />}</TableCell>
                   <TableCell>{perLeg && <Value item={item.right} />}</TableCell>
                   <TableCell>{!perLeg && <Value item={item} />}</TableCell>

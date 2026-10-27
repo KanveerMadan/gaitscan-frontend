@@ -22,6 +22,8 @@ const ResetPasswordPage = lazy(() =>
 );
 const VerifyEmailPage = lazy(() => import("@/screens/links").then((m) => ({ default: m.VerifyEmailPage })));
 const DemoPage = lazy(() => import("@/onboarding/welcome").then((m) => ({ default: m.DemoPage })));
+const LearnIndex = lazy(() => import("@/screens/learn").then((m) => ({ default: m.LearnIndex })));
+const LearnMetric = lazy(() => import("@/screens/learn").then((m) => ({ default: m.LearnMetric })));
 const WelcomeScreen = lazy(() => import("@/onboarding/welcome").then((m) => ({ default: m.WelcomeScreen })));
 
 function Loading() {
@@ -78,6 +80,8 @@ export default function App() {
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/demo" element={<DemoPage />} />
+            <Route path="/learn" element={<LearnIndex />} />
+            <Route path="/learn/:metric" element={<LearnMetric />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/shared" element={<SharedPage />} />
