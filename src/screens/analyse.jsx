@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { MeasurementTable, PassTable, QualitySummary } from "@/measurements";
 
 const STEPS = [
-  "Film from the side, phone held still in landscape at waist height",
+  "Film from the side, phone held still in landscape at hip height",
   "Keep the whole body in view, about 3-4 m away",
   "Walk across the frame and back at your usual pace, 10-20 s",
 ];

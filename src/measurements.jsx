@@ -165,6 +165,12 @@ export function QualitySummary({ quality }) {
     ],
     ["Frame rate", `${quality.fps} frames per second`],
   ];
+  // Parts the analysis left out instead of rejecting the video (backend gaitcore/quality.py).
+  const leftOut = [
+    ["Another person in view", quality.second_person_s],
+    ["Heels out of view", quality.heels_hidden_s],
+  ].filter(([, s]) => s > 0);
+  for (const [what, s] of leftOut) items.push([what, `${s} s, not measured`]);
   return (
     <Card aria-label="Recording quality" role="region">
       <CardHeader>

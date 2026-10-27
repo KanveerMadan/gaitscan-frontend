@@ -38,7 +38,7 @@ function Setup() {
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm">
         <ol className="flex list-decimal flex-col gap-2 pl-5">
-          <li>Prop the phone in landscape at waist height, 3-4 m from where you'll walk.</li>
+          <li>Prop the phone in landscape at hip height, 3-4 m from where you'll walk.</li>
           <li>Point it at right angles to the walking direction, with nothing in front of your legs.</li>
           <li>Record yourself walking across the frame and back at your usual pace for 10-20 seconds.</li>
         </ol>
