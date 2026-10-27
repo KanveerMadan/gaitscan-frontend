@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { ArrowLeft, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
 import { CalibrationStep } from "@/calibration";
+import { ConsentCard } from "@/components/consent-card";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function AnalyseScreen() {
   const [progress, setProgress] = useState("");
   const [calibrate, setCalibrate] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
+  const [needsConsent, setNeedsConsent] = useState(null); // { file, calibration } waiting for consent
 
   const handleFile = (file) => {
     if (!file) return;
@@ -54,10 +56,31 @@ export function AnalyseScreen() {
       }
       setError(done.rejection?.message || done.error || "Analysis failed. Please try again.");
     } catch (err) {
+      if (err?.response?.status === 403 && err.response.data?.detail?.code === "consent_required") {
+        setNeedsConsent({ file, calibration });
+        setStage("consent");
+        return;
+      }
       setError(errorMessage(err, "Analysis failed. Please try again."));
     }
     setStage("upload");
   };
+
+  if (stage === "consent" && needsConsent) {
+    return (
+      <ConsentCard
+        onAccepted={() => {
+          const { file, calibration } = needsConsent;
+          setNeedsConsent(null);
+          analyse(file, calibration);
+        }}
+        onCancel={() => {
+          setNeedsConsent(null);
+          setStage("upload");
+        }}
+      />
+    );
+  }
 
   if (stage === "calibrate" && pendingFile) {
     return (

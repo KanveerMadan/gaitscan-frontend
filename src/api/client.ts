@@ -14,6 +14,7 @@ export type SessionDetail = S["SessionDetail"];
 export type PatientSummary = S["PatientSummary"];
 export type PatientSessions = S["PatientSessions"];
 export type TokenResponse = S["TokenResponse"];
+export type ConsentStatus = S["ConsentStatus"];
 
 export const API: string = import.meta.env.VITE_API_BASE_URL;
 
@@ -26,7 +27,26 @@ export const api = {
   register: async (body: S["RegisterRequest"]) =>
     (await axios.post<TokenResponse>(`${API}/auth/register`, body)).data,
   changePassword: async (body: S["ChangePasswordRequest"]) =>
-    (await axios.post<{ message?: string }>(`${API}/auth/change-password`, body)).data,
+    (await axios.post<{ message?: string } & Partial<TokenResponse>>(`${API}/auth/change-password`, body))
+      .data,
+  requestPasswordReset: async (email: string) =>
+    (await axios.post<{ message: string }>(`${API}/auth/password-reset`, { email })).data,
+  confirmPasswordReset: async (token: string, new_password: string) =>
+    (await axios.post<{ message: string }>(`${API}/auth/password-reset/confirm`, { token, new_password }))
+      .data,
+  verifyEmail: async (token: string) =>
+    (await axios.post<{ message: string }>(`${API}/auth/verify-email`, { token })).data,
+  consent: async () => (await axios.get<ConsentStatus>(`${API}/consent`)).data,
+  acceptConsent: async (version: string) =>
+    (await axios.post<ConsentStatus>(`${API}/consent`, { version })).data,
+  withdrawConsent: async () => (await axios.delete<ConsentStatus>(`${API}/consent`)).data,
+  exportData: async () => (await axios.get<Blob>(`${API}/me/export`, { responseType: "blob" })).data,
+  deleteSession: async (id: string) => {
+    await axios.delete(`${API}/sessions/${id}`);
+  },
+  deleteAccount: async (password: string) => {
+    await axios.delete(`${API}/me`, { data: { password } });
+  },
   submitAnalysis: async (video: File, calibration?: Calibration) => {
     const form = new FormData();
     form.append("video", video);
@@ -86,6 +106,27 @@ export function errorMessage(err: unknown, fallback: string): string {
 }
 
 // The report endpoint requires the bearer token, so a plain <a href> can't be used.
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// The token in a link from an email (#token=...). Reading has no side effect (React may call an
+// initializer twice); forgetLinkToken() then removes it from the address bar.
+export function takeLinkToken(): string {
+  return new URLSearchParams(window.location.hash.slice(1)).get("token") ?? "";
+}
+
+export function forgetLinkToken(): void {
+  if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
+}
+
 export async function downloadReport(id: string): Promise<void> {
   try {
     const res = await axios.get<Blob>(`${API}/report/${id}`, { responseType: "blob" });
