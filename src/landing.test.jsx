@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import App from "./App";
+import example from "./onboarding/example-result.json";
 
 vi.mock("axios", () => {
   const m = {
@@ -20,7 +21,9 @@ test("signed-out visitors see what GaitScan does, how accurate it is, and can si
   render(<App />);
   expect(screen.getByRole("heading", { level: 1, name: /measure how you walk/i })).toBeInTheDocument();
   const accuracy = screen.getByRole("region", { name: /how accurate/i });
-  expect(accuracy.textContent).toMatch(/4\.7 steps\/min/);
+  // The figures the API sends with every result (backend gaitcore/accuracy.py, from make evaluate).
+  expect(accuracy.textContent).toContain(`± ${example.accuracy.cadence.error_95} steps/min`);
+  expect(accuracy.textContent).toContain(`± ${example.accuracy.step_time.error_95} s`);
   expect(accuracy.textContent).toMatch(/not yet validated/i);
   expect(accuracy.textContent).toMatch(/Topham et al\. 2023/);
   expect(screen.getByRole("note").textContent).toMatch(/not a medical device/i);
