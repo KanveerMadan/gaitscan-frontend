@@ -12,6 +12,7 @@ import { SessionScreen } from "@/screens/session";
 import { SetupScreen } from "@/screens/setup";
 import { ResetPasswordPage, VerifyEmailPage } from "@/screens/links";
 import { PrivacyScreen } from "@/screens/privacy";
+import { SharedPage } from "@/screens/shared";
 import { DemoPage, WelcomeScreen } from "@/onboarding/welcome";
 
 const PATIENT_SECTIONS = [
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/shared" element={<SharedPage />} />
           <Route
             path="*"
             element={

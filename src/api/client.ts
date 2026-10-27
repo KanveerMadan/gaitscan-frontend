@@ -15,6 +15,9 @@ export type PatientSummary = S["PatientSummary"];
 export type PatientSessions = S["PatientSessions"];
 export type TokenResponse = S["TokenResponse"];
 export type ConsentStatus = S["ConsentStatus"];
+export type ShareOut = S["ShareOut"];
+export type ShareCreated = S["ShareCreated"];
+export type SharedSession = S["SharedSession"];
 
 export const API: string = import.meta.env.VITE_API_BASE_URL;
 
@@ -44,6 +47,14 @@ export const api = {
   deleteSession: async (id: string) => {
     await axios.delete(`${API}/sessions/${id}`);
   },
+  shares: async (sessionId: string) =>
+    (await axios.get<ShareOut[]>(`${API}/sessions/${sessionId}/shares`)).data,
+  createShare: async (sessionId: string, days = 7) =>
+    (await axios.post<ShareCreated>(`${API}/sessions/${sessionId}/shares`, { days })).data,
+  revokeShare: async (shareId: number) => {
+    await axios.delete(`${API}/shares/${shareId}`);
+  },
+  openShared: async (token: string) => (await axios.post<SharedSession>(`${API}/shared`, { token })).data,
   deleteAccount: async (password: string) => {
     await axios.delete(`${API}/me`, { data: { password } });
   },

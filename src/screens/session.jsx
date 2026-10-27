@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, DownloadSimple, Trash } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { KneeCurves } from "@/components/knee-curves";
+import { ShareCard } from "@/components/share-card";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,6 +165,7 @@ export function SessionScreen() {
             </>
           )}
           <Labels session={session} />
+          {!session.legacy && <ShareCard sessionId={session.id} />}
           <DeleteSession id={session.id} />
         </>
       )}
