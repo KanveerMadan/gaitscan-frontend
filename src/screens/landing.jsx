@@ -10,7 +10,7 @@ const STEPS = [
   {
     icon: Camera,
     title: "Film from the side",
-    text: "Prop your phone at hip height, 3-4 m away, and walk across the frame and back for 10-20 seconds.",
+    text: "Prop your phone at waist height, 3-4 m away, and walk across the frame and back for 10-20 seconds.",
   },
   {
     icon: PersonSimpleWalk,
