@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
-import { ArrowLeft, DownloadSimple } from "@phosphor-icons/react";
+import { Link, useNavigate, useParams } from "react-router";
+import { ArrowLeft, DownloadSimple, Trash } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { KneeCurves } from "@/components/knee-curves";
 import { Alert } from "@/components/ui/alert";
@@ -77,6 +77,46 @@ function Labels({ session }) {
   );
 }
 
+function DeleteSession({ id }) {
+  const navigate = useNavigate();
+  const [asking, setAsking] = useState(false);
+  const [error, setError] = useState(null);
+  const remove = async () => {
+    try {
+      await api.deleteSession(id);
+      navigate("/history");
+    } catch (e) {
+      setError(errorMessage(e, "Could not delete the session. Please try again."));
+    }
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      {error && <Alert variant="destructive">{error}</Alert>}
+      {asking ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>Delete this session and its measurements for good?</span>
+          <Button variant="destructive" size="sm" onClick={remove}>
+            Yes, delete it
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setAsking(false)}>
+            Keep it
+          </Button>
+        </div>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="self-start text-destructive"
+          onClick={() => setAsking(true)}
+        >
+          <Trash aria-hidden />
+          Delete this session
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function SessionScreen() {
   const { id } = useParams();
   const [session, setSession] = useState(null);
@@ -124,6 +164,7 @@ export function SessionScreen() {
             </>
           )}
           <Labels session={session} />
+          <DeleteSession id={session.id} />
         </>
       )}
     </div>
