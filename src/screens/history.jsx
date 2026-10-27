@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CadenceTrend, SessionSummary } from "@/measurements";
+import { CadenceTrend } from "@/components/cadence-trend";
+import { SessionSummary } from "@/measurements";
 import { cn } from "@/lib/utils";
 
 // sessions: newest first. `linkTo(s)` makes each date a link; `selected`/`onToggle` add checkboxes.

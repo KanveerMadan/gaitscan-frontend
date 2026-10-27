@@ -23,7 +23,7 @@ test("the setup check asks before using the camera and says how to fix a refusal
   });
   Object.defineProperty(navigator, "mediaDevices", { value: { getUserMedia }, configurable: true });
   render(<App />);
-  expect(screen.getByRole("heading", { name: /check your setup/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /check your setup/i })).toBeInTheDocument();
   expect(getUserMedia).not.toHaveBeenCalled();
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /start camera/i }));
