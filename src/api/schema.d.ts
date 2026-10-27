@@ -130,6 +130,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/auth/password-reset": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Request Password Reset */
+    post: operations["request_password_reset_auth_password_reset_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/auth/password-reset/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Confirm Password Reset */
+    post: operations["confirm_password_reset_auth_password_reset_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/auth/register": {
     parameters: {
       query?: never;
@@ -141,6 +175,40 @@ export interface paths {
     put?: never;
     /** Register */
     post: operations["register_auth_register_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/auth/verify-email": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Verify Email */
+    post: operations["verify_email_auth_verify_email_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/auth/verify-email/request": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Request Email Verification */
+    post: operations["request_email_verification_auth_verify_email_request_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -198,6 +266,25 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/consent": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Consent */
+    get: operations["get_consent_consent_get"];
+    put?: never;
+    /** Accept Consent */
+    post: operations["accept_consent_consent_post"];
+    /** Withdraw Consent */
+    delete: operations["withdraw_consent_consent_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/healthz": {
     parameters: {
       query?: never;
@@ -210,6 +297,40 @@ export interface paths {
      * @description Render health check: the process is up and the database answers.
      */
     get: operations["healthz_healthz_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Account */
+    delete: operations["delete_account_me_delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/me/export": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Export My Data */
+    get: operations["export_my_data_me_export_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -280,7 +401,8 @@ export interface paths {
     get: operations["get_session_sessions__session_id__get"];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Delete Session */
+    delete: operations["delete_session_sessions__session_id__delete"];
     options?: never;
     head?: never;
     /**
@@ -333,11 +455,8 @@ export interface components {
       calib_y1?: number | null;
       /** Calib Y2 */
       calib_y2?: number | null;
-      /**
-       * Patient Name
-       * @default Anonymous
-       */
-      patient_name: string;
+      /** Patient Name */
+      patient_name?: string | null;
       /**
        * Test
        * @default walk
@@ -358,11 +477,8 @@ export interface components {
       calib_y1?: number | null;
       /** Calib Y2 */
       calib_y2?: number | null;
-      /**
-       * Patient Name
-       * @default Anonymous
-       */
-      patient_name: string;
+      /** Patient Name */
+      patient_name?: string | null;
       /**
        * Test
        * @default walk
@@ -377,6 +493,46 @@ export interface components {
       current_password: string;
       /** New Password */
       new_password: string;
+    };
+    /** ConsentAccept */
+    ConsentAccept: {
+      /** Version */
+      version: string;
+    };
+    /** ConsentRecord */
+    ConsentRecord: {
+      /** Accepted At */
+      accepted_at: string | null;
+      /** Version */
+      version: string;
+      /** Withdrawn At */
+      withdrawn_at: string | null;
+    };
+    /** ConsentStatus */
+    ConsentStatus: {
+      /** Accepted At */
+      accepted_at: string | null;
+      /** Active */
+      active: boolean;
+      /** History */
+      history: components["schemas"]["ConsentRecord"][];
+      /** Text */
+      text: string;
+      /** Version */
+      version: string;
+    };
+    /** DeleteAccount */
+    DeleteAccount: {
+      /** Password */
+      password: string;
+    };
+    /** EmailRequest */
+    EmailRequest: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -410,6 +566,11 @@ export interface components {
     JoinRequest: {
       /** Code */
       code: string;
+    };
+    /** LinkToken */
+    LinkToken: {
+      /** Token */
+      token: string;
     };
     /** LoginRequest */
     LoginRequest: {
@@ -469,6 +630,13 @@ export interface components {
       code: string;
       /** Message */
       message: string;
+    };
+    /** ResetConfirm */
+    ResetConfirm: {
+      /** New Password */
+      new_password: string;
+      /** Token */
+      token: string;
     };
     /**
      * Result
@@ -825,6 +993,72 @@ export interface operations {
       };
     };
   };
+  request_password_reset_auth_password_reset_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmailRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  confirm_password_reset_auth_password_reset_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResetConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   register_auth_register_post: {
     parameters: {
       query?: never;
@@ -854,6 +1088,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  verify_email_auth_verify_email_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LinkToken"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  request_email_verification_auth_verify_email_request_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };
@@ -929,7 +1216,131 @@ export interface operations {
       };
     };
   };
+  get_consent_consent_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConsentStatus"];
+        };
+      };
+    };
+  };
+  accept_consent_consent_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ConsentAccept"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConsentStatus"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  withdraw_consent_consent_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConsentStatus"];
+        };
+      };
+    };
+  };
   healthz_healthz_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  delete_account_me_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DeleteAccount"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_my_data_me_export_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -1052,6 +1463,35 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["SessionDetail"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_session_sessions__session_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
