@@ -3,6 +3,8 @@
 import { Camera, ChartLineUp, PersonSimpleWalk } from "@phosphor-icons/react";
 import { Brand, Disclaimer } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
+// The accuracy block the API sends with every result (backend gaitcore/accuracy.py, from make evaluate).
+import { accuracy } from "@/onboarding/example-result.json";
 
 const STEPS = [
   {
@@ -69,11 +71,13 @@ export function Landing({ card }) {
           <div className="mt-8 grid gap-6 md:grid-cols-[1fr_1fr_1.2fr]">
             <div className="rounded-lg border bg-surface p-5">
               <div className="text-sm text-muted-foreground">Cadence</div>
-              <div className="tabular mt-2 text-3xl font-semibold">± 4.7 steps/min</div>
+              <div className="tabular mt-2 text-3xl font-semibold">
+                ± {accuracy.cadence.error_95} steps/min
+              </div>
             </div>
             <div className="rounded-lg border bg-surface p-5">
               <div className="text-sm text-muted-foreground">Step time</div>
-              <div className="tabular mt-2 text-3xl font-semibold">± 0.024 s</div>
+              <div className="tabular mt-2 text-3xl font-semibold">± {accuracy.step_time.error_95} s</div>
             </div>
             <div className="rounded-lg border bg-primary-soft p-5 text-sm leading-relaxed">
               In 95% of 97 side-view walks from a public dataset, the measurement was at least this close to
