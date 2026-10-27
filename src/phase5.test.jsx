@@ -173,3 +173,67 @@ test("changing the password keeps this session with the fresh token", async () =
   });
   expect(JSON.parse(localStorage.getItem("gaitscan_user")).token).toBe("fresh");
 });
+
+test("a shared link opens the measurements read-only, without signing in", async () => {
+  window.history.pushState({}, "", "/shared#token=abcdefghijklmnopqrstuvwxyz0123");
+  axios.post.mockResolvedValueOnce({
+    data: { created_at: "2026-10-20T09:00:00", result: ANALYSIS.result, disclaimer: "not a medical device" },
+  });
+  render(<App />);
+  expect(await screen.findByRole("heading", { name: "Measurements" })).toBeInTheDocument();
+  expect(axios.post).toHaveBeenCalledWith("http://api.test/shared", {
+    token: "abcdefghijklmnopqrstuvwxyz0123",
+  });
+  expect(screen.getByText(/shared with you/i)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /save notes/i })).toBeNull();
+});
+
+test("an expired shared link says so", async () => {
+  window.history.pushState({}, "", "/shared#token=abcdefghijklmnopqrstuvwxyz0123");
+  axios.post.mockImplementationOnce(() => reject(404, "This link is invalid, has expired or was withdrawn."));
+  render(<App />);
+  expect(await screen.findByText(/has expired or was withdrawn/)).toBeInTheDocument();
+});
+
+test("the owner creates a share link from the session page and can withdraw it", async () => {
+  signIn();
+  window.history.pushState({}, "", "/sessions/s1");
+  const session = {
+    id: "s1",
+    created_at: "2026-10-20T09:00:00",
+    legacy: false,
+    patient_name: "T",
+    pipeline_version: "2.0.0",
+    note: null,
+    notes: null,
+    tags: [],
+    result: ANALYSIS.result,
+    disclaimer: "x",
+  };
+  let shares = [];
+  axios.get.mockImplementation(async (url) =>
+    url.endsWith("/shares") ? { data: shares } : { data: session },
+  );
+  axios.post.mockImplementationOnce(async () => {
+    shares = [
+      { id: 7, created_at: "2026-10-27T09:00:00", expires_at: "2026-11-03T09:00:00+00:00", revoked: false },
+    ];
+    return { data: { ...shares[0], url: "http://app.test/shared#token=secret-token-value-1234567890" } };
+  });
+  axios.delete.mockImplementationOnce(async () => {
+    shares = [{ ...shares[0], revoked: true }];
+    return { status: 204 };
+  });
+  render(<App />);
+  await screen.findByRole("heading", { name: "Measurements" });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /create a link/i }));
+  });
+  expect(axios.post).toHaveBeenCalledWith("http://api.test/sessions/s1/shares", { days: 7 });
+  expect(screen.getByDisplayValue(/shared#token=secret-token-value/)).toBeInTheDocument();
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /withdraw/i }));
+  });
+  expect(axios.delete).toHaveBeenCalledWith("http://api.test/shares/7");
+  expect(await screen.findByText(/withdrawn/i)).toBeInTheDocument();
+});

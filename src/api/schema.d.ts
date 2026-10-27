@@ -412,6 +412,58 @@ export interface paths {
     patch: operations["label_session_sessions__session_id__patch"];
     trace?: never;
   };
+  "/sessions/{session_id}/shares": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Shares */
+    get: operations["list_shares_sessions__session_id__shares_get"];
+    put?: never;
+    /** Create Share */
+    post: operations["create_share_sessions__session_id__shares_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/shared": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Open Shared */
+    post: operations["open_shared_shared_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/shares/{share_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke Share */
+    delete: operations["revoke_share_shares__share_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/status": {
     parameters: {
       query?: never;
@@ -753,6 +805,51 @@ export interface components {
        * @default []
        */
       tags: string[];
+    };
+    /** ShareCreate */
+    ShareCreate: {
+      /**
+       * Days
+       * @default 7
+       */
+      days: number;
+    };
+    /** ShareCreated */
+    ShareCreated: {
+      /** Created At */
+      created_at: string | null;
+      /** Expires At */
+      expires_at: string;
+      /** Id */
+      id: number;
+      /** Revoked */
+      revoked: boolean;
+      /** Url */
+      url: string;
+    };
+    /** ShareOut */
+    ShareOut: {
+      /** Created At */
+      created_at: string | null;
+      /** Expires At */
+      expires_at: string;
+      /** Id */
+      id: number;
+      /** Revoked */
+      revoked: boolean;
+    };
+    /** SharedSession */
+    SharedSession: {
+      /** Created At */
+      created_at: string | null;
+      /** Disclaimer */
+      disclaimer: string;
+      result: components["schemas"]["Result"];
+    };
+    /** SharedToken */
+    SharedToken: {
+      /** Token */
+      token: string;
     };
     /** TokenResponse */
     TokenResponse: {
@@ -1527,6 +1624,134 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["SessionOut"];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_shares_sessions__session_id__shares_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ShareOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_share_sessions__session_id__shares_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ShareCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ShareCreated"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  open_shared_shared_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SharedToken"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SharedSession"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  revoke_share_shares__share_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        share_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
