@@ -231,6 +231,7 @@ test("the owner creates a share link from the session page and can withdraw it",
   });
   expect(axios.post).toHaveBeenCalledWith("http://api.test/sessions/s1/shares", { days: 7 });
   expect(screen.getByDisplayValue(/shared#token=secret-token-value/)).toBeInTheDocument();
+  expect(screen.getByText(/expires 3 Nov 2026/i)).toBeInTheDocument();
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /withdraw/i }));
   });
