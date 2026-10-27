@@ -73,7 +73,10 @@ export function ShareCard({ sessionId }) {
           <ul className="divide-y rounded-md border text-sm">
             {shares.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                <span>Created {formatDate(s.created_at)}</span>
+                <span>
+                  Created {formatDate(s.created_at)}
+                  {!s.revoked && `, expires ${formatDate(s.expires_at)}`}
+                </span>
                 {s.revoked ? (
                   <Badge variant="muted">Withdrawn</Badge>
                 ) : (
