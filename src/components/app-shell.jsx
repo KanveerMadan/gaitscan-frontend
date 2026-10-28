@@ -1,5 +1,6 @@
 // App shell: header (brand, sections, account), the not-a-medical-device note, and the page column.
 import { useState } from "react";
+import { NavLink } from "react-router";
 import { Key, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "@/auth-context";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +32,8 @@ export function Brand() {
   );
 }
 
-// sections: [{ key, label, icon }]; one section renders as a heading, not a tab.
-export function AppShell({ sections, current, onSelect, children }) {
+// sections: [{ to, label, icon, end }], rendered as links (the router marks the current one).
+export function AppShell({ sections, children }) {
   const { user, logout } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const role = user?.role === "clinician" ? "Clinician" : "Patient";
@@ -49,20 +50,25 @@ export function AppShell({ sections, current, onSelect, children }) {
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-4">
           <Brand />
           <nav aria-label="Sections" className="flex items-center gap-1">
-            {sections.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onSelect(key)}
-                aria-current={current === key ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
-                  current === key ? "bg-primary-soft text-primary" : "text-muted-foreground hover:bg-muted",
-                )}
+            {sections.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    "inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
+                    isActive ? "bg-primary-soft text-primary" : "text-muted-foreground hover:bg-muted",
+                  )
+                }
               >
-                {Icon && <Icon size={16} weight={current === key ? "fill" : "regular"} aria-hidden />}
-                {label}
-              </button>
+                {({ isActive }) => (
+                  <>
+                    {Icon && <Icon size={16} weight={isActive ? "fill" : "regular"} aria-hidden />}
+                    {label}
+                  </>
+                )}
+              </NavLink>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">

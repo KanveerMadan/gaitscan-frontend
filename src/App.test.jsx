@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import axios from "axios";
 import App from "./App";
+import { polling } from "./api/client";
 
 vi.mock("axios", () => {
   const m = {
@@ -49,6 +50,20 @@ const ANALYSIS = {
   disclaimer: "not a medical device",
 };
 
+const QUEUED = {
+  job_id: ANALYSIS.job_id,
+  status: "queued",
+  status_url: `/analyses/${ANALYSIS.job_id}`,
+};
+
+// POST /analyses queues the job; the first status poll finds it done (backend Phase 4).
+function mockAnalysis(analysis = ANALYSIS) {
+  axios.post.mockResolvedValueOnce({ data: QUEUED });
+  axios.get.mockResolvedValueOnce({
+    data: { job_id: QUEUED.job_id, status: "done", rejection: null, error: null, analysis },
+  });
+}
+
 const SESSION = {
   id: "abc",
   patient_name: "Anonymous",
@@ -92,6 +107,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  window.history.pushState({}, "", "/"); // the app routes on the URL, which jsdom keeps between tests
+  polling.intervalMs = 1500;
   localStorage.clear();
   vi.clearAllMocks();
   axios.defaults.headers.common = {};
@@ -135,7 +152,7 @@ test("registration offers no role choice and sends no role", async () => {
 test("never logs the bearer token", async () => {
   signIn();
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
-  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  mockAnalysis();
   render(<App />);
   await uploadVideo();
   const logged = log.mock.calls.flat().map(String).join(" ");
@@ -161,7 +178,7 @@ test("upload screen gives the capture protocol, not 'any angle'", () => {
 
 test("results show measurements with units and no removed metrics", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  mockAnalysis();
   render(<App />);
   await uploadVideo();
   await screen.findByRole("heading", { name: "Measurements" });
@@ -185,7 +202,7 @@ test.each([
   ["stored before the accuracy block", RESULT],
 ])("results mark knee bend as not yet validated (%s)", async (_, result) => {
   signIn();
-  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result } });
+  mockAnalysis({ ...ANALYSIS, result });
   render(<App />);
   await uploadVideo();
   const row = await screen.findByRole("row", { name: /peak knee bend/i });
@@ -198,7 +215,7 @@ test("history marks knee bend as not yet validated", async () => {
   axios.get.mockResolvedValue({ data: [SESSION] });
   render(<App />);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /history/i }));
+    fireEvent.click(screen.getByRole("link", { name: /history/i }));
   });
   expect(await screen.findByText(/peak knee bend l\/r \(not yet validated\)/i)).toBeInTheDocument();
 });
@@ -226,9 +243,7 @@ test("results show each pass and the spread between passes", async () => {
     cadence_sd: { value: 1.3, unit: "steps/min" },
     step_time_sd: { value: 0.006, unit: "s" },
   };
-  axios.post.mockResolvedValueOnce({
-    data: { ...ANALYSIS, result: { ...RESULT, passes, pass_variability } },
-  });
+  mockAnalysis({ ...ANALYSIS, result: { ...RESULT, passes, pass_variability } });
   render(<App />);
   await uploadVideo();
   const section = await screen.findByRole("region", { name: /each pass/i });
@@ -239,9 +254,7 @@ test("results show each pass and the spread between passes", async () => {
 
 test("no pass section when no pass was long enough to time alone", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({
-    data: { ...ANALYSIS, result: { ...RESULT, passes: [], pass_variability: null } },
-  });
+  mockAnalysis({ ...ANALYSIS, result: { ...RESULT, passes: [], pass_variability: null } });
   render(<App />);
   await uploadVideo();
   await screen.findByRole("heading", { name: "Measurements" });
@@ -250,7 +263,7 @@ test("no pass section when no pass was long enough to time alone", async () => {
 
 test("floor calibration: two tapped points and a distance are sent in video pixels", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  mockAnalysis();
   render(<App />);
   fireEvent.click(screen.getByRole("checkbox", { name: /marked two points on the floor/i }));
   await uploadVideo();
@@ -286,7 +299,7 @@ test("floor calibration: two tapped points and a distance are sent in video pixe
 
 test("without the calibration option, choosing a video analyses it straight away", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  mockAnalysis();
   render(<App />);
   await uploadVideo();
   const form = axios.post.mock.calls[0][1];
@@ -310,7 +323,7 @@ test("results show the error range next to each validated metric", async () => {
     },
     peak_knee_flexion: { status: "not_yet_validated", note: "No knee-angle reference yet." },
   };
-  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result: { ...RESULT, accuracy } } });
+  mockAnalysis({ ...ANALYSIS, result: { ...RESULT, accuracy } });
   render(<App />);
   await uploadVideo();
   expect((await screen.findByRole("row", { name: /cadence/i })).textContent).toMatch(/± 4\.9 steps\/min/);
@@ -321,7 +334,7 @@ test("results show the error range next to each validated metric", async () => {
 test("results show the analysis notes", async () => {
   signIn();
   const note = "Left and right legs couldn't be told apart reliably in this video.";
-  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result: { ...RESULT, notes: [note] } } });
+  mockAnalysis({ ...ANALYSIS, result: { ...RESULT, notes: [note] } });
   render(<App />);
   await uploadVideo();
   await screen.findByRole("heading", { name: "Measurements" });
@@ -330,7 +343,7 @@ test("results show the analysis notes", async () => {
 
 test("upload sends no analysis mode and offers none", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  mockAnalysis();
   render(<App />);
   expect(document.body.textContent).not.toMatch(REMOVED);
   await uploadVideo();
@@ -353,16 +366,75 @@ test("a rejected video shows the quality gate's reason", async () => {
   expect(await screen.findByText(/Place the phone side-on/)).toBeInTheDocument();
 });
 
+test("upload queues an analysis and polls its status until it is done", async () => {
+  polling.intervalMs = 10;
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: QUEUED });
+  axios.get
+    .mockResolvedValueOnce({
+      data: { ...QUEUED, status: "running", rejection: null, error: null, analysis: null },
+    })
+    .mockResolvedValueOnce({
+      data: { ...QUEUED, status: "done", rejection: null, error: null, analysis: ANALYSIS },
+    });
+  render(<App />);
+  await uploadVideo();
+  expect(axios.post.mock.calls[0][0]).toBe("http://api.test/analyses");
+  await screen.findByRole("heading", { name: "Measurements" });
+  expect(axios.get.mock.calls.map(([u]) => u)).toEqual([
+    "http://api.test/analyses/11111111-2222-3333-4444-555555555555",
+    "http://api.test/analyses/11111111-2222-3333-4444-555555555555",
+  ]);
+});
+
+test("a job rejected by the quality gate shows its reason", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: QUEUED });
+  axios.get.mockResolvedValueOnce({
+    data: {
+      ...QUEUED,
+      status: "rejected",
+      rejection: {
+        code: "legs_not_tracked",
+        message: "The legs couldn't be followed well enough to count the steps.",
+      },
+      error: null,
+      analysis: null,
+    },
+  });
+  render(<App />);
+  await uploadVideo();
+  expect(await screen.findByText(/legs couldn't be followed/)).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Measurements" })).toBeNull();
+});
+
+test("a failed job shows the server's message with its reference", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: QUEUED });
+  axios.get.mockResolvedValueOnce({
+    data: {
+      ...QUEUED,
+      status: "failed",
+      rejection: null,
+      error: "Analysis failed due to an internal error. Reference: abc123def456",
+      analysis: null,
+    },
+  });
+  render(<App />);
+  await uploadVideo();
+  expect(await screen.findByText(/Reference: abc123def456/)).toBeInTheDocument();
+});
+
 test("report download is an authenticated request", async () => {
   signIn();
-  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  mockAnalysis();
   axios.get.mockResolvedValueOnce({ data: new Blob(["%PDF"]) });
   render(<App />);
   await uploadVideo();
   await act(async () => {
     fireEvent.click(await screen.findByRole("button", { name: /download pdf report/i }));
   });
-  const [url, config] = axios.get.mock.calls[0];
+  const [url, config] = axios.get.mock.calls.find(([u]) => u.includes("/report/"));
   expect(url).toMatch(/\/report\/11111111-2222-3333-4444-555555555555$/);
   expect(config).toMatchObject({ responseType: "blob" });
   expect(axios.defaults.headers.common.Authorization).toBe("Bearer tok-123");
@@ -373,7 +445,7 @@ test("history shows measurements, labels legacy sessions and offers them no repo
   axios.get.mockResolvedValue({ data: [SESSION, LEGACY_SESSION] });
   render(<App />);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /history/i }));
+    fireEvent.click(screen.getByRole("link", { name: /history/i }));
   });
   await screen.findByText(/earlier version: measurements not shown/i);
   const text = document.body.textContent;

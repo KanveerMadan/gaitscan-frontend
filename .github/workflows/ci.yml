@@ -20,6 +20,8 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npx eslint . --max-warnings 0 && npx prettier --check .
+      - name: API types match contracts/openapi.json (ADR-008)
+        run: npm run gen:api && git diff --exit-code src/api/schema.d.ts
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Test
@@ -30,3 +32,22 @@ jobs:
           VITE_API_BASE_URL: https://api.example.invalid
       - name: Dependency audit (runtime, high+)
         run: npm audit --omit=dev --audit-level=high
+
+  e2e:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Browser for the end-to-end test
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end main flow (API mocked at the network layer)
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/

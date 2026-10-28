@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
-import { API, errorMessage } from "@/api";
+import { Link, useNavigate } from "react-router";
+import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
 import { Brand, Disclaimer } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
@@ -29,16 +29,18 @@ function Field({ id, label, ...props }) {
   );
 }
 
-function useSubmit(path, fallback) {
+function useSubmit(call, fallback, then = "") {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const submit = async (form) => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`${API}${path}`, form);
-      login({ token: res.data.access_token, role: res.data.role, name: res.data.full_name });
+      const res = await call(form);
+      if (then) navigate(then);
+      login({ token: res.access_token, role: res.role, name: res.full_name });
     } catch (e) {
       setError(errorMessage(e, fallback));
     }
@@ -47,9 +49,44 @@ function useSubmit(path, fallback) {
   return { error, loading, submit };
 }
 
-function LoginPage({ onSwitch }) {
+function ForgotPassword({ onBack }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    setBusy(true);
+    try {
+      setStatus({ ok: true, msg: (await api.requestPasswordReset(email)).message });
+    } catch (e) {
+      setStatus({ ok: false, msg: errorMessage(e, "Could not send the link. Please try again.") });
+    }
+    setBusy(false);
+  };
+  return (
+    <AuthLayout heading="Reset your password">
+      {status && <Alert variant={status.ok ? "default" : "destructive"}>{status.msg}</Alert>}
+      <Field
+        id="forgot-email"
+        label="Email"
+        type="email"
+        autoComplete="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <Button onClick={send} disabled={!email || busy}>
+        {busy ? "Sending…" : "Send link"}
+      </Button>
+      <Button variant="link" className="h-auto p-0" onClick={onBack}>
+        Back to sign in
+      </Button>
+    </AuthLayout>
+  );
+}
+
+function LoginPage({ onSwitch, onForgot }) {
   const [form, setForm] = useState({ email: "", password: "" });
-  const { error, loading, submit } = useSubmit("/auth/login", "Login failed. Please try again.");
+  const { error, loading, submit } = useSubmit(api.login, "Login failed. Please try again.");
   const onKeyDown = (e) => e.key === "Enter" && submit(form);
   return (
     <AuthLayout heading="Sign in to your account">
@@ -77,11 +114,19 @@ function LoginPage({ onSwitch }) {
       <Button onClick={() => submit(form)} disabled={loading}>
         {loading ? "Signing in…" : "Sign in"}
       </Button>
+      <Button variant="link" className="h-auto self-center p-0 text-sm" onClick={onForgot}>
+        Forgot password?
+      </Button>
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
         <Button variant="link" className="h-auto p-0" onClick={onSwitch}>
           Create one
         </Button>
+      </p>
+      <p className="text-center text-sm">
+        <Link to="/demo" className="text-primary underline-offset-4 hover:underline">
+          See an example result
+        </Link>
       </p>
     </AuthLayout>
   );
@@ -89,7 +134,11 @@ function LoginPage({ onSwitch }) {
 
 function RegisterPage({ onSwitch }) {
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
-  const { error, loading, submit } = useSubmit("/auth/register", "Registration failed. Please try again.");
+  const { error, loading, submit } = useSubmit(
+    api.register,
+    "Registration failed. Please try again.",
+    "/welcome",
+  );
   return (
     <AuthLayout heading="Create your account">
       {error && <Alert variant="destructive">{error}</Alert>}
@@ -134,16 +183,16 @@ function RegisterPage({ onSwitch }) {
 
 export function AuthGate({ children }) {
   const { user } = useAuth();
-  const [showLogin, setShowLogin] = useState(true);
+  const [view, setView] = useState("login"); // login | register | forgot
   if (user) return children;
   return (
     <div className="min-h-[100dvh] bg-background">
       <Disclaimer />
-      {showLogin ? (
-        <LoginPage onSwitch={() => setShowLogin(false)} />
-      ) : (
-        <RegisterPage onSwitch={() => setShowLogin(true)} />
+      {view === "login" && (
+        <LoginPage onSwitch={() => setView("register")} onForgot={() => setView("forgot")} />
       )}
+      {view === "register" && <RegisterPage onSwitch={() => setView("login")} />}
+      {view === "forgot" && <ForgotPassword onBack={() => setView("login")} />}
     </div>
   );
 }

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import axios from "axios";
-import { API, errorMessage } from "@/api";
+import { api, errorMessage } from "@/api/client";
+import { useAuth } from "@/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export function ChangePasswordForm() {
+  const { user, login } = useAuth();
   const [form, setForm] = useState({ current_password: "", new_password: "" });
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,8 +17,10 @@ export function ChangePasswordForm() {
     setLoading(true);
     setStatus(null);
     try {
-      const res = await axios.post(`${API}/auth/change-password`, form);
-      setStatus({ ok: true, msg: res.data?.message || "Password changed." });
+      const res = await api.changePassword(form);
+      // The change ends every other login; this session continues with the token issued after it.
+      if (res?.access_token) login({ ...user, token: res.access_token });
+      setStatus({ ok: true, msg: res?.message || "Password changed." });
       setForm({ current_password: "", new_password: "" });
     } catch (err) {
       setStatus({ ok: false, msg: errorMessage(err, "Could not change the password. Please try again.") });

@@ -38,3 +38,5 @@ yarn-error.log*
 *.AVI
 *.db
 *.sqlite
+test-results/
+playwright-report/

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import axios from "axios";
+import { Link } from "react-router";
 import { ArrowLeft, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
-import { API, downloadReport, errorMessage } from "@/api";
+import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
 import { CalibrationStep } from "@/calibration";
+import { ConsentCard } from "@/components/consent-card";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function AnalyseScreen() {
   const [progress, setProgress] = useState("");
   const [calibrate, setCalibrate] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
+  const [needsConsent, setNeedsConsent] = useState(null); // { file, calibration } waiting for consent
 
   const handleFile = (file) => {
     if (!file) return;
@@ -41,23 +43,44 @@ export function AnalyseScreen() {
   const analyse = async (file, calibration = null) => {
     setStage("processing");
     setProgress("Uploading video…");
-    const form = new FormData();
-    form.append("video", file);
-    for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
     try {
-      setProgress("Finding the body in every frame…");
-      const res = await axios.post(`${API}/analyze`, form, {
-        onUploadProgress: (e) => {
-          if (e.loaded === e.total) setProgress("Measuring steps and knee angles…");
-        },
+      const job = await api.submitAnalysis(file, calibration ?? undefined);
+      setProgress("Waiting for the analysis to start…");
+      const done = await waitForAnalysis(job.job_id, (s) => {
+        if (s.status === "running") setProgress("Finding the body in every frame and measuring the steps…");
       });
-      setResults(res.data);
-      setStage("results");
+      if (done.status === "done" && done.analysis) {
+        setResults(done.analysis);
+        setStage("results");
+        return;
+      }
+      setError(done.rejection?.message || done.error || "Analysis failed. Please try again.");
     } catch (err) {
+      if (err?.response?.status === 403 && err.response.data?.detail?.code === "consent_required") {
+        setNeedsConsent({ file, calibration });
+        setStage("consent");
+        return;
+      }
       setError(errorMessage(err, "Analysis failed. Please try again."));
-      setStage("upload");
     }
+    setStage("upload");
   };
+
+  if (stage === "consent" && needsConsent) {
+    return (
+      <ConsentCard
+        onAccepted={() => {
+          const { file, calibration } = needsConsent;
+          setNeedsConsent(null);
+          analyse(file, calibration);
+        }}
+        onCancel={() => {
+          setNeedsConsent(null);
+          setStage("upload");
+        }}
+      />
+    );
+  }
 
   if (stage === "calibrate" && pendingFile) {
     return (
@@ -171,6 +194,12 @@ export function AnalyseScreen() {
           ))}
         </ol>
         <p className="mt-3 text-xs text-muted-foreground">This side-on view is what the measurements need.</p>
+        <Button asChild variant="outline" size="sm" className="mt-4 w-full">
+          <Link to="/setup">Check your setup with the camera</Link>
+        </Button>
+        <Button asChild variant="link" size="sm" className="mt-1 w-full">
+          <Link to="/welcome">How it works</Link>
+        </Button>
       </aside>
     </div>
   );

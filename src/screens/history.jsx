@@ -1,31 +1,61 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { ArrowClockwise, DownloadSimple, Tray } from "@phosphor-icons/react";
-import { API, downloadReport, errorMessage, formatDate } from "@/api";
+import { Link } from "react-router";
+import { ArrowClockwise, ArrowsLeftRight, DownloadSimple, Tray } from "@phosphor-icons/react";
+import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CadenceTrend, SessionSummary } from "@/measurements";
+import { cn } from "@/lib/utils";
 
-export function SessionList({ sessions }) {
+// sessions: newest first. `linkTo(s)` makes each date a link; `selected`/`onToggle` add checkboxes.
+export function SessionList({ sessions, linkTo, selected, onToggle }) {
   return (
     <ul className="divide-y rounded-lg border bg-surface">
-      {sessions.map((s) => (
-        <li key={s.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
-          <div className="min-w-0">
-            {s.patient_name && <div className="text-sm font-medium">{s.patient_name}</div>}
-            <div className="text-xs text-muted-foreground">{formatDate(s.created_at)}</div>
-            <SessionSummary session={s} />
-          </div>
-          {!s.legacy && (
-            <Button variant="ghost" size="sm" onClick={() => downloadReport(s.id)}>
-              <DownloadSimple aria-hidden />
-              Download report
-            </Button>
-          )}
-        </li>
-      ))}
+      {sessions.map((s) => {
+        const date = formatDate(s.created_at);
+        return (
+          <li key={s.id} className="flex flex-wrap items-start gap-3 px-5 py-4">
+            {onToggle && !s.legacy && (
+              <input
+                type="checkbox"
+                className="mt-1 size-4 accent-[var(--primary)]"
+                aria-label={`Select ${date}`}
+                checked={selected?.includes(s.id) ?? false}
+                onChange={() => onToggle(s.id)}
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              {linkTo && !s.legacy ? (
+                <Link to={linkTo(s)} className="text-sm font-medium hover:underline">
+                  {date}
+                </Link>
+              ) : (
+                <div className="text-sm font-medium">{date}</div>
+              )}
+              <SessionSummary session={s} />
+              {(s.tags?.length > 0 || s.notes) && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {s.tags?.map((t) => (
+                    <Badge key={t} variant="muted">
+                      {t}
+                    </Badge>
+                  ))}
+                  {s.notes && <span className="truncate text-xs text-muted-foreground">{s.notes}</span>}
+                </div>
+              )}
+            </div>
+            {!s.legacy && (
+              <Button variant="ghost" size="sm" onClick={() => downloadReport(s.id)}>
+                <DownloadSimple aria-hidden />
+                Download report
+              </Button>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -37,6 +67,41 @@ export function EmptyState({ title, children }) {
       <p className="text-sm font-medium">{title}</p>
       {children && <p className="max-w-[45ch] text-sm text-muted-foreground">{children}</p>}
     </div>
+  );
+}
+
+function daysAgo(iso) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "today";
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+function Latest({ session }) {
+  const m = session.result?.metrics ?? {};
+  const tiles = [
+    ["Cadence", m.cadence],
+    ["Step time", m.step_time],
+  ];
+  return (
+    <Card role="region" aria-label="Latest results">
+      <CardHeader>
+        <CardTitle>Latest results</CardTitle>
+        <CardDescription>
+          Last test {formatDate(session.created_at, false)} ({daysAgo(session.created_at)})
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-2">
+        {tiles.map(([label, item]) => (
+          <div key={label}>
+            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="tabular mt-1 text-2xl font-semibold">
+              {item?.value ?? "-"}{" "}
+              <span className="ml-1 text-sm font-normal text-muted-foreground">{item?.unit}</span>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -53,8 +118,8 @@ function JoinClinicianCard() {
     setLoading(true);
     setStatus(null);
     try {
-      const res = await axios.post(`${API}/patient/join`, { code });
-      setStatus({ type: "success", msg: res.data.message });
+      const res = await api.joinClinician({ code });
+      setStatus({ type: "success", msg: res.message });
       setCode("");
     } catch (e) {
       setStatus({ type: "error", msg: errorMessage(e, "Failed to join") });
@@ -98,12 +163,12 @@ function JoinClinicianCard() {
 export function HistoryScreen() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState([]);
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/sessions`);
-      setSessions(res.data || []);
+      setSessions((await api.sessions()) || []);
     } catch {
       setSessions([]);
     }
@@ -114,10 +179,15 @@ export function HistoryScreen() {
     fetchHistory();
   }, []);
 
+  const toggle = (id) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(-2)));
+  const latest = sessions.find((s) => !s.legacy);
+  const canCompare = selected.length === 2;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Session history</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Your walking</h1>
         <Button variant="outline" size="sm" onClick={fetchHistory}>
           <ArrowClockwise aria-hidden />
           Refresh
@@ -135,8 +205,33 @@ export function HistoryScreen() {
           Analyse a video to start tracking your walking over time.
         </EmptyState>
       )}
+      {!loading && latest && <Latest session={latest} />}
       {!loading && <CadenceTrend sessions={sessions} />}
-      {!loading && sessions.length > 0 && <SessionList sessions={sessions} />}
+      {!loading && sessions.length > 0 && (
+        <section className="flex flex-col gap-3" aria-label="Sessions">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">Sessions</h2>
+            <Button asChild={canCompare} size="sm" variant="outline" disabled={!canCompare}>
+              {canCompare ? (
+                <Link to={`/compare/${selected[0]}/${selected[1]}`}>
+                  <ArrowsLeftRight aria-hidden />
+                  Compare selected
+                </Link>
+              ) : (
+                <span className={cn(!canCompare && "text-muted-foreground")}>
+                  Select two sessions to compare
+                </span>
+              )}
+            </Button>
+          </div>
+          <SessionList
+            sessions={sessions}
+            linkTo={(s) => `/sessions/${s.id}`}
+            selected={selected}
+            onToggle={toggle}
+          />
+        </section>
+      )}
       <JoinClinicianCard />
     </div>
   );
