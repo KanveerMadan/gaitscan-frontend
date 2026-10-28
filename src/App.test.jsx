@@ -375,7 +375,7 @@ test("history shows measurements, labels legacy sessions and offers them no repo
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /history/i }));
   });
-  await screen.findByText(/earlier version — measurements not shown/i);
+  await screen.findByText(/earlier version: measurements not shown/i);
   const text = document.body.textContent;
   expect(text).toMatch(/109\.1 steps\/min/);
   expect(screen.getAllByRole("button", { name: /download report/i })).toHaveLength(1); // the v2 one only

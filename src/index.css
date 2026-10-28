@@ -1,12 +1,139 @@
-body {
-  margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
-    "Droid Sans", "Helvetica Neue", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* GaitScan design system (Plan V3 Phase 3.5). Tokens are CSS variables (shadcn/ui convention), mapped to
+   Tailwind v4 theme values below. Follows the system theme; .light / .dark on <html> override it.
+   Rules: one accent (teal) for actions and focus; amber only for "not yet validated"; red only for errors.
+   Radius: controls 8px (rounded-md), cards and panels 12px (rounded-lg), nothing else.
+   Numbers use the mono face with tabular figures (.tabular). */
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: oklch(0.985 0.002 247);
+  --foreground: oklch(0.21 0.02 255);
+  --surface: oklch(1 0 0);
+  --muted: oklch(0.955 0.004 247);
+  --muted-foreground: oklch(0.47 0.02 255);
+  --border: oklch(0.91 0.006 247);
+  --input: oklch(0.86 0.008 247);
+  --primary: oklch(0.5 0.09 190);
+  --primary-foreground: oklch(0.99 0.005 190);
+  --primary-soft: oklch(0.95 0.025 190);
+  --ring: oklch(0.55 0.1 190);
+  --warning: oklch(0.5 0.11 65);
+  --warning-soft: oklch(0.96 0.04 85);
+  --destructive: oklch(0.52 0.18 25);
+  --destructive-soft: oklch(0.96 0.03 25);
+  --chart-1: oklch(0.55 0.1 190);
+  --chart-2: oklch(0.6 0.12 250);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: oklch(0.17 0.012 255);
+    --foreground: oklch(0.95 0.005 247);
+    --surface: oklch(0.21 0.014 255);
+    --muted: oklch(0.25 0.014 255);
+    --muted-foreground: oklch(0.72 0.015 255);
+    --border: oklch(0.3 0.014 255);
+    --input: oklch(0.36 0.016 255);
+    --primary: oklch(0.72 0.1 190);
+    --primary-foreground: oklch(0.18 0.03 190);
+    --primary-soft: oklch(0.3 0.04 190);
+    --ring: oklch(0.72 0.1 190);
+    --warning: oklch(0.8 0.12 80);
+    --warning-soft: oklch(0.3 0.05 75);
+    --destructive: oklch(0.72 0.15 25);
+    --destructive-soft: oklch(0.3 0.06 25);
+    --chart-1: oklch(0.72 0.1 190);
+    --chart-2: oklch(0.72 0.12 250);
+  }
+}
+
+:root.dark {
+  --background: oklch(0.17 0.012 255);
+  --foreground: oklch(0.95 0.005 247);
+  --surface: oklch(0.21 0.014 255);
+  --muted: oklch(0.25 0.014 255);
+  --muted-foreground: oklch(0.72 0.015 255);
+  --border: oklch(0.3 0.014 255);
+  --input: oklch(0.36 0.016 255);
+  --primary: oklch(0.72 0.1 190);
+  --primary-foreground: oklch(0.18 0.03 190);
+  --primary-soft: oklch(0.3 0.04 190);
+  --ring: oklch(0.72 0.1 190);
+  --warning: oklch(0.8 0.12 80);
+  --warning-soft: oklch(0.3 0.05 75);
+  --destructive: oklch(0.72 0.15 25);
+  --destructive-soft: oklch(0.3 0.06 25);
+  --chart-1: oklch(0.72 0.1 190);
+  --chart-2: oklch(0.72 0.12 250);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-ring: var(--ring);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  a,
+  input,
+  label {
+    touch-action: manipulation;
+  }
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
