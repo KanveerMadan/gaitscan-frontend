@@ -174,6 +174,150 @@ test("results show measurements with units and no removed metrics", async () => 
   expect(text).not.toMatch(REMOVED);
 });
 
+test.each([
+  [
+    "with the accuracy block",
+    {
+      ...RESULT,
+      accuracy: { peak_knee_flexion: { status: "not_yet_validated", note: "No knee-angle reference yet." } },
+    },
+  ],
+  ["stored before the accuracy block", RESULT],
+])("results mark knee bend as not yet validated (%s)", async (_, result) => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result } });
+  render(<App />);
+  await uploadVideo();
+  const row = await screen.findByRole("row", { name: /peak knee bend/i });
+  expect(row.textContent).toMatch(/not yet validated/i);
+  expect(screen.getByRole("row", { name: /cadence/i }).textContent).not.toMatch(/not yet validated/i);
+});
+
+test("history marks knee bend as not yet validated", async () => {
+  signIn();
+  axios.get.mockResolvedValue({ data: [SESSION] });
+  render(<App />);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /history/i }));
+  });
+  expect(await screen.findByText(/peak knee bend l\/r \(not yet validated\)/i)).toBeInTheDocument();
+});
+
+test("results show each pass and the spread between passes", async () => {
+  signIn();
+  const passes = [
+    {
+      pass: 1,
+      direction: "left_to_right",
+      steps: 6,
+      cadence: { value: 110.2, unit: "steps/min" },
+      step_time: { value: 0.544, sd: 0.01, n: 6, unit: "s" },
+    },
+    {
+      pass: 2,
+      direction: "right_to_left",
+      steps: 7,
+      cadence: { value: 108.4, unit: "steps/min" },
+      step_time: { value: 0.553, sd: 0.01, n: 7, unit: "s" },
+    },
+  ];
+  const pass_variability = {
+    passes: 2,
+    cadence_sd: { value: 1.3, unit: "steps/min" },
+    step_time_sd: { value: 0.006, unit: "s" },
+  };
+  axios.post.mockResolvedValueOnce({
+    data: { ...ANALYSIS, result: { ...RESULT, passes, pass_variability } },
+  });
+  render(<App />);
+  await uploadVideo();
+  const section = await screen.findByRole("region", { name: /each pass/i });
+  expect(section.textContent).toMatch(/left to right/i);
+  expect(section.textContent).toMatch(/108\.4 steps\/min/);
+  expect(section.textContent).toMatch(/spread between passes.*1\.3 steps\/min/i);
+});
+
+test("no pass section when no pass was long enough to time alone", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({
+    data: { ...ANALYSIS, result: { ...RESULT, passes: [], pass_variability: null } },
+  });
+  render(<App />);
+  await uploadVideo();
+  await screen.findByRole("heading", { name: "Measurements" });
+  expect(screen.queryByRole("region", { name: /each pass/i })).toBeNull();
+});
+
+test("floor calibration: two tapped points and a distance are sent in video pixels", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  render(<App />);
+  fireEvent.click(screen.getByRole("checkbox", { name: /marked two points on the floor/i }));
+  await uploadVideo();
+  expect(axios.post).not.toHaveBeenCalled();
+  const video = await screen.findByTestId("calibration-video");
+  Object.defineProperty(video, "videoWidth", { value: 1920 });
+  Object.defineProperty(video, "videoHeight", { value: 1080 });
+  fireEvent(video, new Event("loadedmetadata"));
+  const surface = screen.getByTestId("calibration-surface");
+  surface.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 960,
+    height: 540,
+    right: 960,
+    bottom: 540,
+  });
+  const analyse = screen.getByRole("button", { name: /analyse with calibration/i });
+  expect(analyse).toBeDisabled();
+  fireEvent.click(surface, { clientX: 100, clientY: 500 });
+  fireEvent.click(surface, { clientX: 700, clientY: 500 });
+  fireEvent.change(screen.getByLabelText(/distance between the points/i), { target: { value: "4" } });
+  expect(analyse).toBeEnabled();
+  await act(async () => {
+    fireEvent.click(analyse);
+  });
+  const form = axios.post.mock.calls[0][1];
+  expect([
+    ...["calib_x1", "calib_y1", "calib_x2", "calib_y2", "calib_distance_m"].map((k) => form.get(k)),
+  ]).toEqual(["200", "1000", "1400", "1000", "4"]);
+  expect(await screen.findByRole("heading", { name: "Measurements" })).toBeInTheDocument();
+});
+
+test("without the calibration option, choosing a video analyses it straight away", async () => {
+  signIn();
+  axios.post.mockResolvedValueOnce({ data: ANALYSIS });
+  render(<App />);
+  await uploadVideo();
+  const form = axios.post.mock.calls[0][1];
+  expect(form.has("calib_x1")).toBe(false);
+});
+
+test("results show the error range next to each validated metric", async () => {
+  signIn();
+  const accuracy = {
+    cadence: {
+      status: "validated",
+      error_95: 4.9,
+      unit: "steps/min",
+      note: "95% of LJMU walks within ±4.9.",
+    },
+    step_time: {
+      status: "validated",
+      error_95: 0.021,
+      unit: "s",
+      note: "95% of LJMU walks within ±0.021 s.",
+    },
+    peak_knee_flexion: { status: "not_yet_validated", note: "No knee-angle reference yet." },
+  };
+  axios.post.mockResolvedValueOnce({ data: { ...ANALYSIS, result: { ...RESULT, accuracy } } });
+  render(<App />);
+  await uploadVideo();
+  expect((await screen.findByRole("row", { name: /cadence/i })).textContent).toMatch(/± 4\.9 steps\/min/);
+  expect(screen.getByRole("row", { name: /step time/i }).textContent).toMatch(/± 0\.021 s/);
+  expect(document.body.textContent).not.toMatch(/have not been measured yet/);
+});
+
 test("results show the analysis notes", async () => {
   signIn();
   const note = "Left and right legs couldn't be told apart reliably in this video.";

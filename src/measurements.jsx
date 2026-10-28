@@ -10,6 +10,24 @@ const ROWS = [
   ["walking_speed", "Walking speed"],
 ];
 
+// No reference check yet (backend gaitcore/accuracy.py): knee angles until Phase 8, calibrated
+// distances on simulated walking only. Used for results stored before the API sent `accuracy`.
+const NOT_YET_VALIDATED = new Set(["peak_knee_flexion", "step_length", "walking_speed"]);
+
+function notYetValidated(result, key) {
+  const status = result?.accuracy?.[key]?.status;
+  return status ? status === "not_yet_validated" : NOT_YET_VALIDATED.has(key);
+}
+
+const unvalidated = { fontSize: 12, color: "#92400e" };
+
+function accuracyText(result, key) {
+  const a = result?.accuracy?.[key];
+  if (a?.status === "validated") return `± ${a.error_95}${UNIT[a.unit] ?? ` ${a.unit}`}`;
+  if (notYetValidated(result, key)) return <span style={unvalidated}>Not yet validated</span>;
+  return "—";
+}
+
 const UNIT = { deg: "°", "steps/min": " steps/min", s: " s", m: " m", "m/s": " m/s" };
 
 function formatValue(item) {
@@ -46,6 +64,7 @@ export function MeasurementTable({ result }) {
             <th style={th}>Left leg</th>
             <th style={th}>Right leg</th>
             <th style={th}>Both legs</th>
+            <th style={th}>Error range</th>
           </tr>
         </thead>
         <tbody>
@@ -58,6 +77,7 @@ export function MeasurementTable({ result }) {
                 <td style={td}>{perLeg ? formatValue(item.left) : ""}</td>
                 <td style={td}>{perLeg ? formatValue(item.right) : ""}</td>
                 <td style={td}>{perLeg ? "" : formatValue(item)}</td>
+                <td style={td}>{accuracyText(result, key)}</td>
               </tr>
             );
           })}
@@ -69,11 +89,53 @@ export function MeasurementTable({ result }) {
         </p>
       ))}
       <p style={{ fontSize: 12, color: "#64748b", marginTop: 12, lineHeight: 1.5 }}>
-        Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error ranges
-        for these measurements have not been measured yet.
+        Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error range:
+        in an accuracy check on side-view walks from a public dataset (LJMU, Topham et al. 2023), 95% of
+        measurements were within this much of the reference.
         {!("step_length" in m) &&
           " Step length and walking speed need a floor calibration and were not measured."}
       </p>
+    </section>
+  );
+}
+
+const DIRECTION = { left_to_right: "Left to right", right_to_left: "Right to left" };
+
+export function PassTable({ result }) {
+  const passes = result?.passes ?? [];
+  if (!passes.length) return null;
+  const v = result.pass_variability;
+  return (
+    <section style={card} aria-label="Each pass">
+      <h2 style={{ fontSize: 16, margin: "0 0 8px", color: "#1a1a2e" }}>Each pass</h2>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={th}>Pass</th>
+            <th style={th}>Direction</th>
+            <th style={th}>Steps</th>
+            <th style={th}>Cadence</th>
+            <th style={th}>Step time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {passes.map((p) => (
+            <tr key={p.pass}>
+              <td style={td}>{p.pass}</td>
+              <td style={td}>{DIRECTION[p.direction] ?? p.direction}</td>
+              <td style={td}>{p.steps}</td>
+              <td style={td}>{formatValue(p.cadence)}</td>
+              <td style={td}>{formatValue(p.step_time)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {v && (
+        <p style={{ fontSize: 12, color: "#64748b", marginTop: 12, lineHeight: 1.5 }}>
+          Spread between passes (SD): cadence {formatValue(v.cadence_sd)}, step time{" "}
+          {formatValue(v.step_time_sd)}.
+        </p>
+      )}
     </section>
   );
 }
@@ -128,7 +190,8 @@ export function SessionSummary({ session }) {
         Cadence: <strong>{formatValue(m.cadence)}</strong>
       </span>
       <span>
-        Peak knee bend L/R: <strong>{formatValue(m.peak_knee_flexion?.left)}</strong> /{" "}
+        Peak knee bend L/R{notYetValidated(session.result, "peak_knee_flexion") && " (not yet validated)"}:{" "}
+        <strong>{formatValue(m.peak_knee_flexion?.left)}</strong> /{" "}
         <strong>{formatValue(m.peak_knee_flexion?.right)}</strong>
       </span>
     </div>
