@@ -1,36 +1,46 @@
 # GaitScan — Frontend
 
-React web app for GaitScan, an experimental video-based gait **measurement** tool.
+The web app for GaitScan: film yourself walking side-on, and get your cadence and step time with
+their error ranges. The API and the measurement pipeline are in the
+[backend repository](https://github.com/KanveerMadan/GaitScan).
 
-> **Not a medical device.** GaitScan does not diagnose conditions or predict injury, and its
-> measurements have not been clinically validated. A qualified clinician should interpret them.
+> **Not a medical device.** GaitScan is an experimental measurement tool. It does not diagnose
+> conditions or predict outcomes, and its measurements have not been clinically validated.
 
-## Live app
+Live: https://gaitscan-frontend-mnt9.vercel.app
 
-https://gaitscan-frontend-mnt9.vercel.app
+## What it does
 
-## Features
+- **Upload and results.**
+  - Upload a walking video; the analysis runs on the server and the app polls until it's done.
+  - Results show cadence and step time with the error range from the backend's accuracy check
+    (LJMU, Topham et al. 2023).
+  - Knee bend, and step length and speed (with a floor calibration), are labelled "not yet
+    validated".
+  - Each walk across the frame is listed on its own, with a recording-quality summary.
+- **Turned-down videos** come with the reason and what to change.
+- **Before filming:** a setup check (live framing guidance in the browser), a first-test walkthrough,
+  an example result (`/demo`) and Learn pages for each measurement (`/learn`).
+- **Your sessions:**
+  - History with a cadence trend, and session notes and tags.
+  - Comparing two sessions, with "real change" vs "within measurement error".
+  - Knee-angle curves and an authenticated PDF report.
+- **Accounts and privacy:**
+  - Consent before the first analysis.
+  - Privacy center: export, delete sessions, delete the account.
+  - Password reset and email verification pages, change password.
+  - Read-only share links for one session.
+- **Clinicians** see the sessions of patients who linked to them with an invite code.
 
-- Sign in / create account (password at least 10 characters), change password
-- Video upload with the capture protocol shown up front (side view, landscape, full body)
-- Measurements with units: cadence, step and stride time, peak knee bend and hip swing range per leg
-  (step length and walking speed only with a floor calibration), plus a recording-quality summary
-- Videos that can't be measured are rejected with the reason and what to change
-- Session history with a cadence trend (current-version sessions only; older sessions are labelled
-  and show no numbers); clinician dashboard for linked patients
-- Authenticated PDF report download
+## Stack
 
-For how to record a usable video, see the capture protocol in the
-[backend README](https://github.com/KanveerMadan/GaitScan#video-capture-protocol).
-
-## Tech stack
-
-React 19 · Vite · Vitest + Testing Library · TypeScript (`allowJs` while files migrate) · Recharts ·
-Axios · optional Sentry. Planned (ADR-008): React Router, TanStack Query, a typed API client.
+React 19, Vite 8, React Router 7, Tailwind v4 with owned shadcn/ui primitives (Radix), Phosphor
+icons, Geist, Recharts, Axios, optional Sentry. The API client is typed from the backend's OpenAPI
+contract.
 
 ## Local setup
 
-Requires Node 22.13+.
+Node 22.13+.
 
 ```bash
 npm ci
@@ -38,22 +48,35 @@ cp .env.example .env.local      # VITE_API_BASE_URL=http://localhost:8000 for a 
 npm run dev                     # http://localhost:3000
 ```
 
-| Script                                  | What it does                                                      |
-| --------------------------------------- | ----------------------------------------------------------------- |
-| `npm test`                              | Vitest, once                                                      |
-| `npm run lint` / `npm run format:check` | ESLint / Prettier                                                 |
-| `npm run typecheck`                     | `tsc --noEmit`                                                    |
-| `npm run build`                         | Production build into `dist/` (fails without `VITE_API_BASE_URL`) |
+| Script                                  | What it does                                                                                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`                              | Vitest (unit and screen tests, API mocked)                                                                                                                 |
+| `npm run e2e`                           | Playwright on the production build, API mocked at the network layer: the main flow, phone-width layout, and axe (WCAG 2.1 AA) scans in light and dark mode |
+| `npm run lint` / `npm run format:check` | ESLint / Prettier                                                                                                                                          |
+| `npm run typecheck`                     | `tsc --noEmit`                                                                                                                                             |
+| `npm run gen:api`                       | Regenerate `src/api/schema.d.ts` from `contracts/openapi.json`                                                                                             |
+| `npm run build`                         | Production build into `dist/` (needs `VITE_API_BASE_URL`)                                                                                                  |
 
-Pre-commit hooks (ESLint + Prettier) use the [pre-commit](https://pre-commit.com) framework:
-`pre-commit install` (needs git ≥ 2.35).
+**API contract.** `contracts/openapi.json` is a byte-identical copy of the backend's. When the API
+changes, copy the new file over, run `npm run gen:api` and commit both; CI fails if they drift.
 
-## Configuration
+Pre-commit hooks (ESLint, Prettier): `pre-commit install` (git ≥ 2.35).
 
-See [.env.example](.env.example). Only `VITE_*` variables reach the browser; never put secrets there.
+## Layout
 
-## Deployment
+| Path                   | What                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `src/App.jsx`          | Routes; screens other than sign-in and upload load on demand                         |
+| `src/screens/`         | One file per screen (landing, analyse, history, session, compare, privacy, learn, …) |
+| `src/measurements.jsx` | Result tables: values, error ranges, "not yet validated" labels                      |
+| `src/components/ui/`   | The design system's primitives (owned shadcn/ui)                                     |
+| `src/api/`             | Typed client and generated schema                                                    |
+| `e2e/`                 | Playwright specs                                                                     |
 
-Vercel (Vite preset, output `dist`). Set `VITE_API_BASE_URL` (and optionally `VITE_SENTRY_DSN`)
-for the Production and Preview environments; the backend's `CORS_ORIGINS` must list the deployed
-origin.
+## Configuration and deployment
+
+- **Configuration.** See [.env.example](.env.example). Only `VITE_*` variables reach the browser;
+  never put secrets there.
+- **Deployment.** Vercel (Vite preset, output `dist`). Set `VITE_API_BASE_URL` (and optionally
+  `VITE_SENTRY_DSN`) for Production and Preview. The backend's `CORS_ORIGINS` must list the deployed
+  origin, and its `FRONTEND_URL` must point here for links in emails.
