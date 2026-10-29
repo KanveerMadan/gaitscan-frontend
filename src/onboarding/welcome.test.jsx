@@ -46,10 +46,10 @@ test("the walkthrough is reachable from the upload screen", () => {
   expect(screen.getByRole("link", { name: /how it works/i })).toHaveAttribute("href", "/welcome");
 });
 
-test("anyone can see an example result without signing up", () => {
+test("anyone can see an example result without signing up", async () => {
   window.history.pushState({}, "", "/demo");
   render(<App />);
-  expect(screen.getByRole("heading", { name: /example result/i })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: /example result/i })).toBeInTheDocument();
   expect(screen.getByText(/simulated walker/i)).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Measurements" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute("href", "/");

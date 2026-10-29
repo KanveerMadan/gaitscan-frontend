@@ -37,15 +37,15 @@
   "accuracy": {
     "cadence": {
       "status": "validated",
-      "error_95": 4.7,
-      "mdc_95": 4.4,
+      "error_95": 4.5,
+      "mdc_95": 4.6,
       "unit": "steps/min",
-      "note": "In an accuracy check on 97 side-view walks from a public dataset (LJMU), 95% of values were within \u00b14.7 steps/min of the reference."
+      "note": "In an accuracy check on 97 side-view walks from a public dataset (LJMU), 95% of values were within \u00b14.5 steps/min of the reference."
     },
     "step_time": {
       "status": "validated",
       "error_95": 0.024,
-      "mdc_95": 0.023,
+      "mdc_95": 0.025,
       "unit": "s",
       "note": "In an accuracy check on 97 side-view walks from a public dataset (LJMU), 95% of values were within \u00b10.024 s of the reference."
     },

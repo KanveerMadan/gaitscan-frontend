@@ -138,7 +138,9 @@ test("the reset link's page sets the new password with the token from the fragme
   window.history.pushState({}, "", "/reset-password#token=abcdefghijklmnopqrstuvwxyz0123");
   axios.post.mockResolvedValueOnce({ data: { message: "Password changed. You can now sign in." } });
   render(<App />);
-  fireEvent.change(screen.getByLabelText(/new password/i), { target: { value: "a-new-long-password" } });
+  fireEvent.change(await screen.findByLabelText(/new password/i), {
+    target: { value: "a-new-long-password" },
+  });
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /set new password/i }));
   });

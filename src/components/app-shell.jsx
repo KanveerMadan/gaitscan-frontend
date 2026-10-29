@@ -47,9 +47,13 @@ export function AppShell({ sections, children }) {
         Skip to content
       </a>
       <header className="border-b bg-surface">
-        <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-4">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:h-16 sm:flex-nowrap sm:py-0">
           <Brand />
-          <nav aria-label="Sections" className="flex items-center gap-1">
+          {/* Phones: the sections get their own full-width row below the brand and account buttons. */}
+          <nav
+            aria-label="Sections"
+            className="order-last grid w-full auto-cols-fr grid-flow-col gap-1 sm:order-none sm:flex sm:w-auto sm:items-center"
+          >
             {sections.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
@@ -57,7 +61,7 @@ export function AppShell({ sections, children }) {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    "inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
+                    "inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
                     isActive ? "bg-primary-soft text-primary" : "text-muted-foreground hover:bg-muted",
                   )
                 }

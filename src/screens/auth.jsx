@@ -2,20 +2,18 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
-import { Brand, Disclaimer } from "@/components/app-shell";
+import { Landing } from "@/screens/landing";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// The sign-in / register / reset card; the landing page places it beside its hero.
 function AuthLayout({ heading, children }) {
   return (
-    <div className="flex min-h-[calc(100dvh-36px)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm rounded-lg border bg-surface p-8">
-        <Brand />
-        <h1 className="mt-6 text-xl font-semibold tracking-tight">{heading}</h1>
-        <div className="mt-6 flex flex-col gap-4">{children}</div>
-      </div>
+    <div className="w-full rounded-lg border bg-surface p-6 shadow-sm">
+      <h2 className="text-lg font-semibold tracking-tight">{heading}</h2>
+      <div className="mt-5 flex flex-col gap-4">{children}</div>
     </div>
   );
 }
@@ -186,13 +184,16 @@ export function AuthGate({ children }) {
   const [view, setView] = useState("login"); // login | register | forgot
   if (user) return children;
   return (
-    <div className="min-h-[100dvh] bg-background">
-      <Disclaimer />
-      {view === "login" && (
-        <LoginPage onSwitch={() => setView("register")} onForgot={() => setView("forgot")} />
-      )}
-      {view === "register" && <RegisterPage onSwitch={() => setView("login")} />}
-      {view === "forgot" && <ForgotPassword onBack={() => setView("login")} />}
-    </div>
+    <Landing
+      card={
+        <>
+          {view === "login" && (
+            <LoginPage onSwitch={() => setView("register")} onForgot={() => setView("forgot")} />
+          )}
+          {view === "register" && <RegisterPage onSwitch={() => setView("login")} />}
+          {view === "forgot" && <ForgotPassword onBack={() => setView("login")} />}
+        </>
+      }
+    />
   );
 }

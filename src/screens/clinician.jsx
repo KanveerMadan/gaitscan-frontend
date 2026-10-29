@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CaretRight, Copy, Plus } from "@phosphor-icons/react";
 import { api, formatDate } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { CadenceTrend } from "@/measurements";
+import { CadenceTrend } from "@/components/cadence-trend";
 import { EmptyState, SessionList } from "@/screens/history";
 
 function Skeleton() {
