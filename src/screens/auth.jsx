@@ -75,6 +75,7 @@ function useSubmit(call, fallback, onCodes = null) {
         role: res.role,
         name: res.full_name,
         recoveryCodesLeft: res.recovery_codes?.length ?? res.recovery_codes_left,
+        settings: res.settings ?? null,
       };
       if (res.recovery_codes && onCodes) onCodes(res.recovery_codes, () => login(session));
       else login(session);

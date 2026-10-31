@@ -15,6 +15,7 @@ export type PatientSummary = S["PatientSummary"];
 export type PatientSessions = S["PatientSessions"];
 export type TokenResponse = S["TokenResponse"];
 export type SignupResponse = S["SignupResponse"];
+export type Settings = S["Settings"];
 export type ConsentStatus = S["ConsentStatus"];
 export type ShareOut = S["ShareOut"];
 export type ShareCreated = S["ShareCreated"];
@@ -44,6 +45,9 @@ export const api = {
       .data,
   verifyEmail: async (token: string) =>
     (await axios.post<{ message: string }>(`${API}/auth/verify-email`, { token })).data,
+  settings: async () => (await axios.get<Settings>(`${API}/me/settings`)).data,
+  updateSettings: async (body: S["SettingsUpdate"]) =>
+    (await axios.patch<Settings>(`${API}/me/settings`, body)).data,
   consent: async () => (await axios.get<ConsentStatus>(`${API}/consent`)).data,
   acceptConsent: async (version: string) =>
     (await axios.post<ConsentStatus>(`${API}/consent`, { version })).data,

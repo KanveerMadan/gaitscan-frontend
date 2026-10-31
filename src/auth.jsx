@@ -39,6 +39,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // The theme setting (light / dark / follow the system) on <html>, as src/index.css expects.
+  const theme = user?.settings?.theme ?? "system";
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    if (theme !== "system") root.classList.add(theme);
+  }, [theme]);
+
   // Tokens expire (12 h); any 401 returns the user to the sign-in screen.
   useEffect(() => {
     const id = axios.interceptors.response.use(

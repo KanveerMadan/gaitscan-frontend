@@ -1,6 +1,7 @@
 // Display of analysis results. Only measurements the API returns are shown, with their units and the
 // error range from the API's accuracy block; there are no reference colours, scores or labels.
 import { Link } from "react-router";
+import { useAuth } from "@/auth-context";
 import { Info, Warning } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,22 @@ function notYetValidated(result, key) {
   return status ? status === "not_yet_validated" : NOT_YET_VALIDATED.has(key);
 }
 
-const UNIT = { deg: "°", "steps/min": " steps/min", s: " s", m: " m", "m/s": " m/s" };
+const UNIT = { deg: "°", "steps/min": " steps/min", s: " s", m: " m", "m/s": " m/s", ft: " ft", mph: " mph" };
+
+// Display units (Settings): calibrated distances and speeds in feet and mph; the API stays metric.
+const IMPERIAL = { m: ["ft", 3.28084], "m/s": ["mph", 2.236936] };
+
+function inUnits(item, units) {
+  const to = units === "imperial" && item && IMPERIAL[item.unit];
+  if (!to) return item;
+  const [unit, k] = to;
+  const fix = (v) => (v === null || v === undefined ? v : (v * k).toFixed(2));
+  return { ...item, unit, value: fix(item.value), sd: fix(item.sd) };
+}
+
+function useUnits() {
+  return useAuth()?.user?.settings?.units ?? "metric";
+}
 
 function accuracyText(result, key) {
   const a = result?.accuracy?.[key];
@@ -46,7 +62,7 @@ function formatValue(item) {
 }
 
 function Value({ item }) {
-  const text = formatValue(item);
+  const text = formatValue(inUnits(item, useUnits()));
   return <span className={text === "not measured" ? "text-muted-foreground" : "tabular"}>{text}</span>;
 }
 

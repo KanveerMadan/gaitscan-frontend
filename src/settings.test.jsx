@@ -6,6 +6,7 @@ import App from "./App";
 import { calendarFile, nextTestDue } from "./lib/reminders";
 import { MeasurementTable } from "./measurements";
 import { AuthContext } from "./auth-context";
+import { MemoryRouter } from "react-router";
 
 vi.mock("axios", () => {
   const m = {
@@ -111,9 +112,11 @@ test("imperial units show calibrated distances in feet and miles per hour", () =
     },
   };
   render(
-    <AuthContext.Provider value={{ user: { settings: { ...DEFAULTS, units: "imperial" } } }}>
-      <MeasurementTable result={result} />
-    </AuthContext.Provider>,
+    <MemoryRouter>
+      <AuthContext.Provider value={{ user: { settings: { ...DEFAULTS, units: "imperial" } } }}>
+        <MeasurementTable result={result} />
+      </AuthContext.Provider>
+    </MemoryRouter>,
   );
   expect(screen.getByRole("row", { name: /step length/i }).textContent).toMatch(/2\.30 ± 0\.07 ft/);
   expect(screen.getByRole("row", { name: /walking speed/i }).textContent).toMatch(/2\.86 mph/);

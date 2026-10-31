@@ -69,7 +69,14 @@ export function AppShell({ sections, children }) {
               >
                 {({ isActive }) => (
                   <>
-                    {Icon && <Icon size={16} weight={isActive ? "fill" : "regular"} aria-hidden />}
+                    {Icon && (
+                      <Icon
+                        size={16}
+                        weight={isActive ? "fill" : "regular"}
+                        aria-hidden
+                        className="hidden shrink-0 sm:block"
+                      />
+                    )}
                     {label}
                   </>
                 )}

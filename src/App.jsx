@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
-import { ChartLineUp, ShieldCheck, Stethoscope, VideoCamera } from "@phosphor-icons/react";
+import { ChartLineUp, GearSix, ShieldCheck, Stethoscope, VideoCamera } from "@phosphor-icons/react";
 import { AuthProvider } from "@/auth";
 import { useAuth } from "@/auth-context";
 import { AppShell } from "@/components/app-shell";
@@ -15,6 +15,7 @@ const CompareScreen = lazy(() => import("@/screens/compare").then((m) => ({ defa
 const HistoryScreen = lazy(() => import("@/screens/history").then((m) => ({ default: m.HistoryScreen })));
 const SessionScreen = lazy(() => import("@/screens/session").then((m) => ({ default: m.SessionScreen })));
 const SetupScreen = lazy(() => import("@/screens/setup").then((m) => ({ default: m.SetupScreen })));
+const SettingsScreen = lazy(() => import("@/screens/settings").then((m) => ({ default: m.SettingsScreen })));
 const PrivacyScreen = lazy(() => import("@/screens/privacy").then((m) => ({ default: m.PrivacyScreen })));
 const SharedPage = lazy(() => import("@/screens/shared").then((m) => ({ default: m.SharedPage })));
 const ResetPasswordPage = lazy(() =>
@@ -34,10 +35,12 @@ const PATIENT_SECTIONS = [
   { to: "/", label: "Analyse", icon: VideoCamera, end: true },
   { to: "/history", label: "History", icon: ChartLineUp },
   { to: "/privacy", label: "Privacy", icon: ShieldCheck },
+  { to: "/settings", label: "Settings", icon: GearSix },
 ];
 const CLINICIAN_SECTIONS = [
   { to: "/patients", label: "Patients", icon: Stethoscope },
   { to: "/privacy", label: "Privacy", icon: ShieldCheck },
+  { to: "/settings", label: "Settings", icon: GearSix },
 ];
 
 function MainApp() {
@@ -49,6 +52,7 @@ function MainApp() {
           <Routes>
             <Route path="/patients" element={<ClinicianScreen />} />
             <Route path="/privacy" element={<PrivacyScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
             <Route path="*" element={<Navigate to="/patients" replace />} />
           </Routes>
         </Suspense>
@@ -66,6 +70,7 @@ function MainApp() {
           <Route path="/setup" element={<SetupScreen />} />
           <Route path="/welcome" element={<WelcomeScreen />} />
           <Route path="/privacy" element={<PrivacyScreen />} />
+          <Route path="/settings" element={<SettingsScreen />} />
           {/* Just signed up: the walkthrough; just signed in: the upload page. */}
           <Route path="/signup" element={<Navigate to="/welcome" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

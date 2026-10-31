@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CadenceTrend } from "@/components/cadence-trend";
+import { useAuth } from "@/auth-context";
+import { nextTestDue } from "@/lib/reminders";
+import { ReminderButton } from "@/screens/settings";
 import { SessionSummary } from "@/measurements";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +109,46 @@ function Latest({ session }) {
   );
 }
 
+function NextTest({ latest }) {
+  const { user } = useAuth();
+  const weeks = user?.settings?.retest_weeks ?? null;
+  const due = nextTestDue(latest?.created_at, weeks);
+  const [now] = useState(() => Date.now()); // read once: rendering stays pure
+  const days = due ? Math.ceil((due.getTime() - now) / 86_400_000) : null;
+  return (
+    <Card role="region" aria-label="Next walking test">
+      <CardHeader>
+        <CardTitle>Next walking test</CardTitle>
+        <CardDescription>
+          {!weeks && "Measuring at regular intervals is how changes show up."}
+          {weeks && !due && "Due once you've done your first test."}
+          {due &&
+            `Due ${formatDate(due.toISOString(), false)} (${
+              days > 1
+                ? `in ${days} days`
+                : days === 1
+                  ? "tomorrow"
+                  : days === 0
+                    ? "today"
+                    : `${-days} days ago`
+            }), ${weeks === 1 ? "a week" : `${weeks} weeks`} after your last test.`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {due ? (
+          <ReminderButton due={due} weeks={weeks} />
+        ) : (
+          !weeks && (
+            <Link to="/settings" className="text-sm font-medium text-primary hover:underline">
+              Set a reminder
+            </Link>
+          )
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function JoinClinicianCard() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState(null);
@@ -163,7 +206,7 @@ function JoinClinicianCard() {
 
 export function HistoryScreen() {
   const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // no "no sessions yet" flash before the first load
   const [selected, setSelected] = useState([]);
 
   const fetchHistory = async () => {
@@ -207,6 +250,7 @@ export function HistoryScreen() {
         </EmptyState>
       )}
       {!loading && latest && <Latest session={latest} />}
+      {!loading && <NextTest latest={latest} />}
       {!loading && <CadenceTrend sessions={sessions} />}
       {!loading && sessions.length > 0 && (
         <section className="flex flex-col gap-3" aria-label="Sessions">
