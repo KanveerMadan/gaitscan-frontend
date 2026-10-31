@@ -17,7 +17,7 @@ const ANALYSIS = {
       peak_knee_flexion: { left: { value: 56.7, sd: 0.4, n: 3, unit: "deg" }, right: null },
     },
     accuracy: {
-      cadence: { status: "validated", error_95: 4.7, mdc_95: 4.4, unit: "steps/min", note: "" },
+      cadence: { status: "validated", error_95: 4.5, mdc_95: 4.6, unit: "steps/min", note: "" },
       step_time: { status: "validated", error_95: 0.024, mdc_95: 0.023, unit: "s", note: "" },
       peak_knee_flexion: { status: "not_yet_validated", note: "No knee-angle reference yet." },
     },
@@ -52,6 +52,7 @@ test("sign in, upload a walking video, wait for the analysis, see measurements w
 
   await page.goto("/");
   await expect(page.getByRole("note")).toContainText("not a medical device");
+  await page.getByRole("link", { name: "Sign in" }).first().click();
   await page.getByLabel("Email").fill("walker@example.com");
   await page.getByLabel("Password").fill("e2e-password-123");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -63,7 +64,7 @@ test("sign in, upload a walking video, wait for the analysis, see measurements w
 
   await expect(page.getByRole("heading", { name: "Measurements" })).toBeVisible();
   await expect(page.getByRole("row", { name: /Cadence/ })).toContainText("109.1 steps/min");
-  await expect(page.getByRole("row", { name: /Cadence/ })).toContainText("± 4.7 steps/min");
+  await expect(page.getByRole("row", { name: /Cadence/ })).toContainText("± 4.5 steps/min");
   await expect(page.getByRole("row", { name: /Peak knee bend/ })).toContainText("Not yet validated");
   expect(polls).toBe(2);
 });

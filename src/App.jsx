@@ -66,6 +66,8 @@ function MainApp() {
           <Route path="/setup" element={<SetupScreen />} />
           <Route path="/welcome" element={<WelcomeScreen />} />
           <Route path="/privacy" element={<PrivacyScreen />} />
+          {/* Just signed up: the walkthrough; just signed in: the upload page. */}
+          <Route path="/signup" element={<Navigate to="/welcome" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

@@ -22,7 +22,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   axios.defaults.headers.common = {};
   localStorage.clear();
-  window.history.pushState({}, "", "/");
+  window.history.pushState({}, "", "/signin");
 });
 
 test("after sign-up the codes are shown once and must be saved before going on", async () => {
@@ -30,7 +30,7 @@ test("after sign-up the codes are shown once and must be saved before going on",
     data: { access_token: "tok", role: "patient", full_name: "Ana", recovery_codes: CODES },
   });
   render(<App />);
-  fireEvent.click(screen.getByRole("button", { name: /create one/i }));
+  fireEvent.click(screen.getByRole("link", { name: /create one/i }));
   type("Email", "ana@example.com");
   type("Password", "a-long-enough-password");
   await act(async () => {

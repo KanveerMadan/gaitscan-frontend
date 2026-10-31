@@ -7,7 +7,7 @@ import { Brand, Disclaimer, DISCLAIMER } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MeasurementTable, PassTable } from "@/measurements";
+import { MeasurementTable, ResultHeadline, PassTable } from "@/measurements";
 import example from "./example-result.json";
 
 const STEPS = ["What it measures", "Set up", "Example result"];
@@ -58,7 +58,7 @@ export function DemoPage() {
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
           <Brand />
           <Button asChild size="sm">
-            <Link to="/">Create an account</Link>
+            <Link to="/signup">Create an account</Link>
           </Button>
         </div>
       </header>
@@ -77,6 +77,7 @@ function Example() {
       <Alert>
         This example comes from a simulated walker (no real person): it shows what a result looks like.
       </Alert>
+      <ResultHeadline result={example} />
       <MeasurementTable result={example} />
       <PassTable result={example} />
     </div>

@@ -129,18 +129,18 @@ export function RecoveryPrompt() {
   if (hidden || (!open && user?.recoveryCodesLeft !== 0)) return null;
   return (
     <div role="region" aria-label="Recovery codes" className="border-b bg-warning-soft">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 text-sm">
-        <p>
-          You have no recovery codes. Without them, a forgotten password can't be recovered (GaitScan doesn't
-          send email).
-        </p>
-        {open ? (
-          <MakeCodes onDone={() => setHidden(true)} />
-        ) : (
-          <Button size="sm" className="self-start" onClick={() => setOpen(true)}>
-            Create recovery codes
-          </Button>
-        )}
+      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-2.5 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p className="mr-auto">
+            You have no recovery codes. Without them, a forgotten password can't be recovered.
+          </p>
+          {!open && (
+            <Button size="sm" onClick={() => setOpen(true)}>
+              Create recovery codes
+            </Button>
+          )}
+        </div>
+        {open && <MakeCodes onDone={() => setHidden(true)} />}
       </div>
     </div>
   );

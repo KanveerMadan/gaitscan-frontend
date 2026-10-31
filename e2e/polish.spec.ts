@@ -69,7 +69,7 @@ async function mockApi(page: Page) {
 }
 
 async function signIn(page: Page) {
-  await page.goto("/");
+  await page.goto("/signin");
   await page.getByLabel("Email").fill("walker@example.com");
   await page.getByLabel("Password").fill("e2e-password-123");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -94,10 +94,12 @@ async function noSidewaysScroll(page: Page) {
 test.describe("at phone width", () => {
   test.use({ viewport: { width: 360, height: 780 } });
 
-  test("the landing page fits without sideways scrolling", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await noSidewaysScroll(page);
+  test("the landing and sign-in pages fit without sideways scrolling", async ({ page }) => {
+    for (const path of ["/", "/signin", "/signup"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await noSidewaysScroll(page);
+    }
   });
 
   test("every screen fits, and every section link is on screen", async ({ page }) => {
@@ -134,6 +136,11 @@ for (const scheme of ["light", "dark"] as const) {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     expect(await seriousProblems(page), "landing").toEqual([]);
+    await page.getByRole("region", { name: "How accurate it is" }).scrollIntoViewIfNeeded();
+    expect(await seriousProblems(page), "landing, scrolled").toEqual([]);
+    await page.goto("/signin");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await seriousProblems(page), "sign in").toEqual([]);
     await page.goto("/demo");
     await expect(page.getByRole("heading").first()).toBeVisible();
     expect(await seriousProblems(page), "demo").toEqual([]);

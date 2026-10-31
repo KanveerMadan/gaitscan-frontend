@@ -107,7 +107,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  window.history.pushState({}, "", "/"); // the app routes on the URL, which jsdom keeps between tests
+  // The app routes on the URL, which jsdom keeps between tests. Signed out, /signin is the sign-in
+  // screen; signed in, it redirects to the upload page.
+  window.history.pushState({}, "", "/signin");
   polling.intervalMs = 1500;
   localStorage.clear();
   vi.clearAllMocks();

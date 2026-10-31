@@ -2,7 +2,9 @@
    Tailwind v4 theme values below. Follows the system theme; .light / .dark on <html> override it.
    Rules: one accent (teal) for actions and focus; amber only for "not yet validated"; red only for errors.
    Radius: controls 8px (rounded-md), cards and panels 12px (rounded-lg), nothing else.
-   Numbers use the mono face with tabular figures (.tabular). */
+   Numbers use the mono face with tabular figures (.tabular).
+   Stage (Phase 9): the dark field the walking figure moves on (landing, sign-in), the same in light
+   and dark mode, like a motion-capture lab; its accent is the figure's point colour. */
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
@@ -27,6 +29,12 @@
   --destructive-soft: oklch(0.96 0.03 25);
   --chart-1: oklch(0.55 0.1 190);
   --chart-2: oklch(0.6 0.12 250);
+  --stage: oklch(0.155 0.012 240);
+  --stage-raised: oklch(0.2 0.014 240);
+  --stage-foreground: oklch(0.96 0.004 240);
+  --stage-muted: oklch(0.7 0.012 240);
+  --stage-border: oklch(0.3 0.014 240);
+  --stage-accent: oklch(0.85 0.09 185);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -89,6 +97,12 @@
   --color-destructive-soft: var(--destructive-soft);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
+  --color-stage: var(--stage);
+  --color-stage-raised: var(--stage-raised);
+  --color-stage-foreground: var(--stage-foreground);
+  --color-stage-muted: var(--stage-muted);
+  --color-stage-border: var(--stage-border);
+  --color-stage-accent: var(--stage-accent);
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --radius-md: 8px;

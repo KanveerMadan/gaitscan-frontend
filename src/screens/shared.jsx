@@ -6,7 +6,7 @@ import { Brand, Disclaimer } from "@/components/app-shell";
 import { KneeCurves } from "@/components/knee-curves";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { MeasurementTable, PassTable, QualitySummary } from "@/measurements";
+import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
 
 export function SharedPage() {
   const [token] = useState(takeLinkToken);
@@ -46,6 +46,7 @@ export function SharedPage() {
                 Shared with you, read-only. Recorded {formatDate(shared.created_at)}.
               </p>
             </div>
+            <ResultHeadline result={shared.result} />
             <MeasurementTable result={shared.result} />
             <KneeCurves series={[{ label: "This session", result: shared.result }]} />
             <PassTable result={shared.result} />

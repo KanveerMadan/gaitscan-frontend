@@ -5,9 +5,10 @@ import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client
 import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
 import { Alert } from "@/components/ui/alert";
+import { WalkerCanvas } from "@/landing/walker-canvas";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MeasurementTable, PassTable, QualitySummary } from "@/measurements";
+import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
 
 const STEPS = [
   "Film from the side, phone held still in landscape at waist height",
@@ -100,11 +101,15 @@ export function AnalyseScreen() {
       <div className="flex flex-col gap-3 py-16" role="status" aria-live="polite">
         <h1 className="text-xl font-semibold tracking-tight">Analysing your video…</h1>
         <p className="text-sm text-muted-foreground">{progress}</p>
-        <div className="mt-4 grid gap-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />
-          ))}
-        </div>
+        <figure className="mt-4 w-full max-w-2xl overflow-hidden rounded-lg bg-stage">
+          <div className="h-[26rem]">
+            <WalkerCanvas skeleton signal events label="An illustration of what the analysis does" />
+          </div>
+          <figcaption className="border-t border-stage-border px-4 py-3 font-mono text-[10px] tracking-[0.12em] text-stage-muted uppercase">
+            What happens to your video, shown on the simulated walker: points in every frame, one peak per
+            step
+          </figcaption>
+        </figure>
       </div>
     );
   }
@@ -129,6 +134,7 @@ export function AnalyseScreen() {
             Download PDF report
           </Button>
         </div>
+        <ResultHeadline result={results.result} />
         <MeasurementTable result={results.result} />
         <PassTable result={results.result} />
         <QualitySummary quality={results.result?.quality} />
@@ -160,13 +166,19 @@ export function AnalyseScreen() {
           }}
           onClick={() => document.getElementById("file-input").click()}
           className={cn(
-            "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed bg-surface px-6 py-14 text-center transition-colors",
-            dragOver ? "border-primary bg-primary-soft" : "border-input hover:border-primary/60",
+            "group relative isolate flex h-80 flex-col items-center justify-end gap-2 overflow-hidden rounded-lg bg-stage px-6 pb-8 text-center text-stage-foreground transition-shadow",
+            dragOver ? "ring-2 ring-stage-accent" : "hover:ring-1 hover:ring-stage-border",
           )}
         >
-          <UploadSimple size={32} className="text-primary" aria-hidden />
-          <span className="text-base font-medium">Drop your video here or choose a file</span>
-          <span className="text-xs text-muted-foreground">.mp4, .mov or .avi, up to 100 MB</span>
+          {/* What the video should look like: someone walking across a side-on frame. */}
+          <span className="absolute inset-x-0 top-0 -z-10 h-[78%] opacity-70 transition-opacity group-hover:opacity-100">
+            <WalkerCanvas frame skeleton decorative />
+          </span>
+          <span className="flex items-center gap-2 text-base font-medium">
+            <UploadSimple size={20} className="text-stage-accent" aria-hidden />
+            Drop your video here or choose a file
+          </span>
+          <span className="text-xs text-stage-muted">.mp4, .mov or .avi, up to 100 MB</span>
         </button>
         <input
           id="file-input"

@@ -50,6 +50,54 @@ function Value({ item }) {
   return <span className={text === "not measured" ? "text-muted-foreground" : "tabular"}>{text}</span>;
 }
 
+// The two validated measurements, large, each with the range the accuracy check supports.
+export function ResultHeadline({ result }) {
+  const m = result?.metrics ?? {};
+  const q = result?.quality ?? {};
+  const items = [
+    ["cadence", "Cadence"],
+    ["step_time", "Step time"],
+  ].filter(([key]) => m[key]?.value != null);
+  if (!items.length) return null;
+  return (
+    <section aria-label="Headline results" className="overflow-hidden rounded-lg border">
+      <div className="grid gap-px bg-border sm:grid-cols-2">
+        {items.map(([key, label]) => {
+          const item = m[key];
+          const a = result?.accuracy?.[key];
+          return (
+            <div key={key} className="bg-surface p-5 sm:p-6">
+              <div className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
+                {label}
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="tabular text-4xl font-semibold tracking-tight">{item.value}</span>
+                <span className="text-sm text-muted-foreground">{UNIT[item.unit]?.trim() ?? item.unit}</span>
+              </div>
+              <div className="mt-2 text-sm text-muted-foreground">
+                {a?.status === "validated" ? (
+                  <span className="tabular">
+                    ± {a.error_95}
+                    {UNIT[a.unit] ?? ` ${a.unit}`} (95% of checked measurements)
+                  </span>
+                ) : (
+                  "Not yet validated"
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {q.steps_detected != null && (
+        <p className="border-t bg-surface px-5 py-3 text-xs text-muted-foreground sm:px-6">
+          From {q.steps_detected} steps in {q.passes ?? 1} pass{q.passes === 1 ? "" : "es"} of steady walking
+          {q.steady_walking_s != null ? ` (${q.steady_walking_s} s)` : ""}.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function MeasurementTable({ result }) {
   const m = result?.metrics ?? {};
   return (

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MeasurementTable, PassTable, QualitySummary } from "@/measurements";
+import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
 
 function Labels({ session }) {
   const [notes, setNotes] = useState(session.notes ?? "");
@@ -158,6 +158,7 @@ export function SessionScreen() {
             <Alert>{session.note}</Alert>
           ) : (
             <>
+              <ResultHeadline result={session.result} />
               <MeasurementTable result={session.result} />
               <KneeCurves series={[{ label: "This session", result: session.result }]} />
               <PassTable result={session.result} />
