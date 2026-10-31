@@ -266,6 +266,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/clinician/inbox": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Inbox */
+    get: operations["inbox_clinician_inbox_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/clinician/inbox/seen": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Mark Seen */
+    post: operations["mark_seen_clinician_inbox_seen_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/clinician/invite": {
     parameters: {
       query?: never;
@@ -481,6 +515,24 @@ export interface paths {
     patch: operations["label_session_sessions__session_id__patch"];
     trace?: never;
   };
+  "/sessions/{session_id}/comments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Comments */
+    get: operations["list_comments_sessions__session_id__comments_get"];
+    put?: never;
+    /** Add Comment */
+    post: operations["add_comment_sessions__session_id__comments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sessions/{session_id}/shares": {
     parameters: {
       query?: never;
@@ -615,6 +667,26 @@ export interface components {
       /** New Password */
       new_password: string;
     };
+    /** CommentIn */
+    CommentIn: {
+      /** Body */
+      body: string;
+    };
+    /** CommentOut */
+    CommentOut: {
+      /** Author Name */
+      author_name: string | null;
+      /** Author Role */
+      author_role: string;
+      /** Body */
+      body: string;
+      /** Created At */
+      created_at: string | null;
+      /** Id */
+      id: number;
+      /** Mine */
+      mine: boolean;
+    };
     /** ConsentAccept */
     ConsentAccept: {
       /** Version */
@@ -664,6 +736,32 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** Inbox */
+    Inbox: {
+      /** Items */
+      items: components["schemas"]["InboxItem"][];
+      /** Seen At */
+      seen_at: string | null;
+    };
+    /** InboxItem */
+    InboxItem: {
+      /** Cadence */
+      cadence: number | null;
+      /** Comments */
+      comments: number;
+      /** Created At */
+      created_at: string | null;
+      /** Last Comment At */
+      last_comment_at: string | null;
+      /** New */
+      new: boolean;
+      /** Patient Id */
+      patient_id: number;
+      /** Patient Name */
+      patient_name: string | null;
+      /** Session Id */
+      session_id: string;
     };
     /** JobQueued */
     JobQueued: {
@@ -1496,6 +1594,44 @@ export interface operations {
       };
     };
   };
+  inbox_clinician_inbox_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Inbox"];
+        };
+      };
+    };
+  };
+  mark_seen_clinician_inbox_seen_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   create_invite_clinician_invite_post: {
     parameters: {
       query?: never;
@@ -1930,6 +2066,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SessionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_comments_sessions__session_id__comments_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CommentOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_comment_sessions__session_id__comments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CommentIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CommentOut"];
         };
       };
       /** @description Validation Error */
