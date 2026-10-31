@@ -6,6 +6,7 @@ import { useAuth } from "@/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { RecoveryPrompt } from "@/components/recovery-codes";
 import { ChangePasswordForm } from "@/screens/account";
 
 export const DISCLAIMER =
@@ -105,6 +106,7 @@ export function AppShell({ sections, children }) {
           </div>
         )}
       </header>
+      <RecoveryPrompt />
       <Disclaimer />
       <main id="main" className="mx-auto max-w-5xl px-4 py-8">
         {children}

@@ -14,6 +14,7 @@ export type SessionDetail = S["SessionDetail"];
 export type PatientSummary = S["PatientSummary"];
 export type PatientSessions = S["PatientSessions"];
 export type TokenResponse = S["TokenResponse"];
+export type SignupResponse = S["SignupResponse"];
 export type ConsentStatus = S["ConsentStatus"];
 export type ShareOut = S["ShareOut"];
 export type ShareCreated = S["ShareCreated"];
@@ -28,7 +29,11 @@ export type Calibration = Partial<
 export const api = {
   login: async (body: S["LoginRequest"]) => (await axios.post<TokenResponse>(`${API}/auth/login`, body)).data,
   register: async (body: S["RegisterRequest"]) =>
-    (await axios.post<TokenResponse>(`${API}/auth/register`, body)).data,
+    (await axios.post<SignupResponse>(`${API}/auth/register`, body)).data,
+  recover: async (body: S["RecoverRequest"]) =>
+    (await axios.post<{ message: string }>(`${API}/auth/recover`, body)).data,
+  makeRecoveryCodes: async (password: string) =>
+    (await axios.post<{ recovery_codes: string[] }>(`${API}/auth/recovery-codes`, { password })).data,
   changePassword: async (body: S["ChangePasswordRequest"]) =>
     (await axios.post<{ message?: string } & Partial<TokenResponse>>(`${API}/auth/change-password`, body))
       .data,
