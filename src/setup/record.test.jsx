@@ -77,8 +77,10 @@ test("a recording is reviewed, then analysed like an uploaded video", async () =
   axios.post.mockResolvedValueOnce({ data: { job_id: "j", status: "queued", status_url: "/analyses/j" } });
   axios.get.mockResolvedValue({ data: { job_id: "j", status: "running" } });
   render(<App />);
+  // Found outside act(): inside it, React holds back the lazily loaded screen until act ends.
+  const start = await screen.findByRole("button", { name: /start camera/i }, { timeout: 4000 });
   await act(async () => {
-    fireEvent.click(await screen.findByRole("button", { name: /start camera/i }));
+    fireEvent.click(start);
   });
   expect(screen.getByText(/hasn't been checked on phones yet/i)).toBeInTheDocument();
   await act(async () => {
@@ -100,8 +102,10 @@ test("a recording is reviewed, then analysed like an uploaded video", async () =
 test("without MP4 recording the screen says to use the camera app", async () => {
   mockCamera(false);
   render(<App />);
+  // Found outside act(): inside it, React holds back the lazily loaded screen until act ends.
+  const start = await screen.findByRole("button", { name: /start camera/i }, { timeout: 4000 });
   await act(async () => {
-    fireEvent.click(await screen.findByRole("button", { name: /start camera/i }));
+    fireEvent.click(start);
   });
   expect(screen.queryByRole("button", { name: /^record$/i })).toBeNull();
   expect(screen.getByText(/can't record a video GaitScan can measure/i)).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, BellSimple, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
@@ -6,6 +6,7 @@ import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
 import { Alert } from "@/components/ui/alert";
 import { WalkerCanvas } from "@/landing/walker-canvas";
+import { takeRecording } from "@/setup/record";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
@@ -82,6 +83,14 @@ export function AnalyseScreen() {
     }
     setStage("upload");
   };
+
+  // A recording made on the setup screen starts its analysis as soon as this screen opens.
+  const [recorded] = useState(() => takeRecording());
+  useEffect(() => {
+    if (recorded) analyse(recorded);
+    // once, for the recording handed over on arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (stage === "consent" && needsConsent) {
     return (
