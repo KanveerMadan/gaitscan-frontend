@@ -128,6 +128,7 @@ test("a finished analysis can notify a hidden tab", async () => {
   });
   expect(NotificationMock.requestPermission).toHaveBeenCalled();
   Object.defineProperty(document, "hidden", { value: true, configurable: true });
+  await vi.waitFor(() => expect(resolveDone).toBeTypeOf("function")); // the second poll is in flight
   await act(async () => {
     resolveDone({
       data: {

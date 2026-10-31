@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 // sessions: newest first. `linkTo(s)` makes each date a link; `selected`/`onToggle` add checkboxes.
 export function SessionList({ sessions, linkTo, selected, onToggle }) {
   return (
-    <ul className="divide-y rounded-lg border bg-surface">
+    <ul aria-label="Sessions" className="divide-y rounded-lg border bg-surface">
       {sessions.map((s) => {
         const date = formatDate(s.created_at);
         return (
@@ -149,6 +149,36 @@ function NextTest({ latest }) {
   );
 }
 
+function GoalCard({ latest }) {
+  const { user } = useAuth();
+  const goal = user?.settings?.goal_cadence ?? null;
+  const value = latest?.result?.metrics?.cadence?.value;
+  if (goal == null || value == null) return null;
+  const diff = value - goal;
+  const away = Math.round(Math.abs(diff) * 10) / 10;
+  const mdc = latest.result?.accuracy?.cadence?.mdc_95;
+  const noise = mdc != null && Math.abs(diff) < mdc;
+  return (
+    <Card role="region" aria-label="Cadence goal">
+      <CardHeader>
+        <CardTitle>Cadence goal</CardTitle>
+        <CardDescription>Your goal: {goal} steps/min (change it in Settings).</CardDescription>
+      </CardHeader>
+      <CardContent className="text-sm">
+        <p>
+          Your latest walk: <span className="tabular font-medium">{value} steps/min</span>,{" "}
+          {away === 0 ? "exactly on your goal" : `${away} steps/min ${diff < 0 ? "below" : "above"} it`}.
+        </p>
+        {noise && (
+          <p className="mt-1 text-muted-foreground">
+            That's within measurement noise: two walks by the same person differ by up to {mdc} steps/min.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function JoinClinicianCard() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState(null);
@@ -205,9 +235,12 @@ function JoinClinicianCard() {
 }
 
 export function HistoryScreen() {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true); // no "no sessions yet" flash before the first load
   const [selected, setSelected] = useState([]);
+  const [query, setQuery] = useState("");
+  const [tag, setTag] = useState(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -226,6 +259,14 @@ export function HistoryScreen() {
   const toggle = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(-2)));
   const latest = sessions.find((s) => !s.legacy);
+  const tags = [...new Set(sessions.flatMap((s) => s.tags ?? []))].sort();
+  const q = query.trim().toLowerCase();
+  const shown = sessions.filter(
+    (s) =>
+      (!tag || s.tags?.includes(tag)) &&
+      (!q ||
+        [s.notes ?? "", ...(s.tags ?? []), formatDate(s.created_at)].join(" ").toLowerCase().includes(q)),
+  );
   const canCompare = selected.length === 2;
 
   return (
@@ -250,8 +291,9 @@ export function HistoryScreen() {
         </EmptyState>
       )}
       {!loading && latest && <Latest session={latest} />}
+      {!loading && <GoalCard latest={latest} />}
       {!loading && <NextTest latest={latest} />}
-      {!loading && <CadenceTrend sessions={sessions} />}
+      {!loading && <CadenceTrend sessions={sessions} goal={user?.settings?.goal_cadence ?? null} />}
       {!loading && sessions.length > 0 && (
         <section className="flex flex-col gap-3" aria-label="Sessions">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -269,12 +311,41 @@ export function HistoryScreen() {
               )}
             </Button>
           </div>
-          <SessionList
-            sessions={sessions}
-            linkTo={(s) => `/sessions/${s.id}`}
-            selected={selected}
-            onToggle={toggle}
-          />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              type="search"
+              aria-label="Search sessions"
+              placeholder="Search notes, tags or dates"
+              className="sm:max-w-xs"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5" aria-label="Filter by tag" role="group">
+                {tags.map((t) => (
+                  <Button
+                    key={t}
+                    size="sm"
+                    variant={tag === t ? "default" : "outline"}
+                    aria-pressed={tag === t}
+                    onClick={() => setTag(tag === t ? null : t)}
+                  >
+                    {t}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+          {shown.length > 0 ? (
+            <SessionList
+              sessions={shown}
+              linkTo={(s) => `/sessions/${s.id}`}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ) : (
+            <EmptyState title="No sessions match.">Try other words, or clear the tag filter.</EmptyState>
+          )}
         </section>
       )}
       <JoinClinicianCard />

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
+import { ArrowLeft, BellSimple, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
 import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
@@ -25,6 +25,19 @@ export function AnalyseScreen() {
   const [calibrate, setCalibrate] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [needsConsent, setNeedsConsent] = useState(null); // { file, calibration } waiting for consent
+  // "Analysis done" notification: asked for only when the user clicks, shown only if the tab is hidden.
+  const [notifying, setNotifying] = useState(false);
+  const notifyRef = useRef(false);
+  const canNotify = typeof Notification !== "undefined" && Notification.permission !== "denied";
+  const askToNotify = async () => {
+    const answer = await Notification.requestPermission();
+    notifyRef.current = answer === "granted";
+    setNotifying(notifyRef.current);
+  };
+  const notifyDone = (text) => {
+    if (notifyRef.current && document.hidden && Notification.permission === "granted")
+      new Notification("GaitScan", { body: text });
+  };
 
   const handleFile = (file) => {
     if (!file) return;
@@ -50,6 +63,9 @@ export function AnalyseScreen() {
       const done = await waitForAnalysis(job.job_id, (s) => {
         if (s.status === "running") setProgress("Finding the body in every frame and measuring the steps…");
       });
+      notifyDone(
+        done.status === "done" ? "Your walk has been measured." : "Your video couldn't be measured: see why.",
+      );
       if (done.status === "done" && done.analysis) {
         setResults(done.analysis);
         setStage("results");
@@ -101,6 +117,20 @@ export function AnalyseScreen() {
       <div className="flex flex-col gap-3 py-16" role="status" aria-live="polite">
         <h1 className="text-xl font-semibold tracking-tight">Analysing your video…</h1>
         <p className="text-sm text-muted-foreground">{progress}</p>
+        {canNotify && (
+          <div>
+            {notifying ? (
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <BellSimple aria-hidden /> We'll let you know when it's done, if you switch to another tab.
+              </p>
+            ) : (
+              <Button variant="outline" size="sm" onClick={askToNotify}>
+                <BellSimple aria-hidden />
+                Notify me when it's done
+              </Button>
+            )}
+          </div>
+        )}
         <figure className="mt-4 w-full max-w-2xl overflow-hidden rounded-lg bg-stage">
           <div className="h-[26rem]">
             <WalkerCanvas skeleton signal events label="An illustration of what the analysis does" />

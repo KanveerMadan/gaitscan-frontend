@@ -7,6 +7,7 @@ import { useAuth } from "@/auth-context";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { INTERVALS, downloadCalendar, nextTestDue } from "@/lib/reminders";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +48,55 @@ export function ReminderButton({ due, weeks, size = "sm" }) {
       <CalendarPlus aria-hidden />
       Add to calendar
     </Button>
+  );
+}
+
+function GoalCard({ goal, save }) {
+  const [value, setValue] = useState(goal ?? "");
+  const n = Number(value);
+  const valid = value !== "" && n >= 60 && n <= 180;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Cadence goal</CardTitle>
+        <CardDescription>
+          A number of steps per minute you'd like to walk at; the dashboard compares your latest walk with it.
+          It's your own target: GaitScan doesn't suggest one.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap items-end gap-3">
+        <div className="grid gap-2">
+          <label htmlFor="goal-cadence" className="text-sm font-medium">
+            Cadence goal (steps/min)
+          </label>
+          <Input
+            id="goal-cadence"
+            type="number"
+            inputMode="numeric"
+            min="60"
+            max="180"
+            className="tabular w-32"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
+        </div>
+        <Button size="sm" disabled={!valid} onClick={() => save({ goal_cadence: n })}>
+          Save goal
+        </Button>
+        {goal != null && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setValue("");
+              save({ goal_cadence: null });
+            }}
+          >
+            Clear goal
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -118,6 +168,7 @@ export function SettingsScreen() {
               )}
             </CardContent>
           </Card>
+          <GoalCard goal={settings.goal_cadence} save={save} />
           <Card>
             <CardHeader>
               <CardTitle>Display</CardTitle>
