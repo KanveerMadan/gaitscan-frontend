@@ -164,6 +164,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/auth/recover": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Recover */
+    post: operations["recover_auth_recover_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/auth/recovery-codes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Make Recovery Codes */
+    post: operations["make_recovery_codes_auth_recovery_codes_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/auth/register": {
     parameters: {
       query?: never;
@@ -634,6 +668,11 @@ export interface components {
       /** Password */
       password: string;
     };
+    /** PasswordCheck */
+    PasswordCheck: {
+      /** Password */
+      password: string;
+    };
     /** PatientRef */
     PatientRef: {
       /** Email */
@@ -663,6 +702,18 @@ export interface components {
       patient_id: number;
       /** Session Count */
       session_count: number;
+    };
+    /** RecoverRequest */
+    RecoverRequest: {
+      /** Code */
+      code: string;
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+      /** New Password */
+      new_password: string;
     };
     /** RegisterRequest */
     RegisterRequest: {
@@ -851,12 +902,32 @@ export interface components {
       /** Token */
       token: string;
     };
+    /** SignupResponse */
+    SignupResponse: {
+      /** Access Token */
+      access_token: string;
+      /** Full Name */
+      full_name?: string | null;
+      /** Recovery Codes */
+      recovery_codes: string[];
+      /** Recovery Codes Left */
+      recovery_codes_left?: number | null;
+      /** Role */
+      role: string;
+      /**
+       * Token Type
+       * @default bearer
+       */
+      token_type: string;
+    };
     /** TokenResponse */
     TokenResponse: {
       /** Access Token */
       access_token: string;
       /** Full Name */
       full_name?: string | null;
+      /** Recovery Codes Left */
+      recovery_codes_left?: number | null;
       /** Role */
       role: string;
       /**
@@ -1156,6 +1227,72 @@ export interface operations {
       };
     };
   };
+  recover_auth_recover_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecoverRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  make_recovery_codes_auth_recovery_codes_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordCheck"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   register_auth_register_post: {
     parameters: {
       query?: never;
@@ -1175,7 +1312,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["TokenResponse"];
+          "application/json": components["schemas"]["SignupResponse"];
         };
       };
       /** @description Validation Error */

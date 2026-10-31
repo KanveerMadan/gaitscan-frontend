@@ -120,20 +120,6 @@ test("deleting the account needs the password and a confirmation, then signs out
   expect(localStorage.getItem("gaitscan_user")).toBeNull();
 });
 
-test("forgot password sends a link and shows the server's answer", async () => {
-  axios.post.mockResolvedValueOnce({
-    data: { message: "If an account uses this email address, we've sent it a link." },
-  });
-  render(<App />);
-  fireEvent.click(screen.getByRole("button", { name: /forgot password/i }));
-  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "a@b.com" } });
-  await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /send link/i }));
-  });
-  expect(axios.post).toHaveBeenCalledWith("http://api.test/auth/password-reset", { email: "a@b.com" });
-  expect(await screen.findByText(/we've sent it a link/i)).toBeInTheDocument();
-});
-
 test("the reset link's page sets the new password with the token from the fragment", async () => {
   window.history.pushState({}, "", "/reset-password#token=abcdefghijklmnopqrstuvwxyz0123");
   axios.post.mockResolvedValueOnce({ data: { message: "Password changed. You can now sign in." } });

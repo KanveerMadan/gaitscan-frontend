@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CODES_IN_A_SET, MakeCodes } from "@/components/recovery-codes";
 
 function ConsentSection() {
   const [consent, setConsent] = useState(null);
@@ -143,11 +144,43 @@ function DeleteAccountSection() {
   );
 }
 
+function RecoveryCodesSection() {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const left = user?.recoveryCodesLeft;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Recovery codes</CardTitle>
+        <CardDescription>
+          The way back in if you forget your password: GaitScan doesn't send email.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm">
+        {typeof left === "number" && (
+          <p>
+            {left} of {CODES_IN_A_SET} recovery codes left.
+          </p>
+        )}
+        {open ? (
+          <MakeCodes onDone={() => setOpen(false)} />
+        ) : (
+          <Button variant="outline" size="sm" className="self-start" onClick={() => setOpen(true)}>
+            Make a new set
+          </Button>
+        )}
+        {!open && <p className="text-xs text-muted-foreground">A new set replaces the old one.</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PrivacyScreen() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">Privacy</h1>
       <ConsentSection />
+      <RecoveryCodesSection />
       <ExportSection />
       <DeleteAccountSection />
     </div>

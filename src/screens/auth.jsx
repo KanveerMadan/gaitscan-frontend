@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
+import { CodeList, SaveCodesNotice } from "@/components/recovery-codes";
 import { Landing } from "@/screens/landing";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ function Field({ id, label, ...props }) {
   );
 }
 
-function useSubmit(call, fallback, then = "") {
+function useSubmit(call, fallback, then = "", onCodes = null) {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
@@ -37,8 +38,21 @@ function useSubmit(call, fallback, then = "") {
     setError("");
     try {
       const res = await call(form);
-      if (then) navigate(then);
-      login({ token: res.access_token, role: res.role, name: res.full_name });
+      const session = {
+        token: res.access_token,
+        role: res.role,
+        name: res.full_name,
+        recoveryCodesLeft: res.recovery_codes?.length ?? res.recovery_codes_left,
+      };
+      if (res.recovery_codes) {
+        onCodes?.(res.recovery_codes, () => {
+          navigate(then);
+          login(session);
+        });
+      } else {
+        if (then) navigate(then);
+        login(session);
+      }
     } catch (e) {
       setError(errorMessage(e, fallback));
     }
@@ -47,36 +61,79 @@ function useSubmit(call, fallback, then = "") {
   return { error, loading, submit };
 }
 
-function ForgotPassword({ onBack }) {
-  const [email, setEmail] = useState("");
+function RecoverAccount({ onBack }) {
+  const [form, setForm] = useState({ email: "", code: "", new_password: "" });
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
-  const send = async () => {
+  const recover = async () => {
     setBusy(true);
     try {
-      setStatus({ ok: true, msg: (await api.requestPasswordReset(email)).message });
+      setStatus({ ok: true, msg: (await api.recover(form)).message });
     } catch (e) {
-      setStatus({ ok: false, msg: errorMessage(e, "Could not send the link. Please try again.") });
+      setStatus({ ok: false, msg: errorMessage(e, "Could not change the password. Please try again.") });
     }
     setBusy(false);
   };
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   return (
-    <AuthLayout heading="Reset your password">
+    <AuthLayout heading="Recover your account">
+      <p className="text-sm text-muted-foreground">
+        Use one of the recovery codes you saved when you created your account.
+      </p>
       {status && <Alert variant={status.ok ? "default" : "destructive"}>{status.msg}</Alert>}
       <Field
-        id="forgot-email"
+        id="recover-email"
         label="Email"
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        value={form.email}
+        onChange={set("email")}
       />
-      <Button onClick={send} disabled={!email || busy}>
-        {busy ? "Sending…" : "Send link"}
+      <Field
+        id="recover-code"
+        label="Recovery code"
+        autoComplete="one-time-code"
+        placeholder="XXXX-XXXX-XXXX-XXXX"
+        className="font-mono"
+        value={form.code}
+        onChange={set("code")}
+      />
+      <Field
+        id="recover-password"
+        label="New password"
+        type="password"
+        autoComplete="new-password"
+        placeholder="At least 10 characters"
+        value={form.new_password}
+        onChange={set("new_password")}
+      />
+      <Button onClick={recover} disabled={!form.email || !form.code || !form.new_password || busy}>
+        {busy ? "Saving…" : "Set new password"}
       </Button>
       <Button variant="link" className="h-auto p-0" onClick={onBack}>
         Back to sign in
+      </Button>
+    </AuthLayout>
+  );
+}
+
+function SaveCodes({ codes, onContinue }) {
+  const [saved, setSaved] = useState(false);
+  return (
+    <AuthLayout heading="Save your recovery codes">
+      <SaveCodesNotice />
+      <CodeList codes={codes} />
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 accent-[var(--primary)]"
+          checked={saved}
+          onChange={(e) => setSaved(e.target.checked)}
+        />
+        I've saved these codes somewhere safe
+      </label>
+      <Button onClick={onContinue} disabled={!saved}>
+        Continue
       </Button>
     </AuthLayout>
   );
@@ -130,12 +187,13 @@ function LoginPage({ onSwitch, onForgot }) {
   );
 }
 
-function RegisterPage({ onSwitch }) {
+function RegisterPage({ onSwitch, onCodes }) {
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const { error, loading, submit } = useSubmit(
     api.register,
     "Registration failed. Please try again.",
     "/welcome",
+    onCodes,
   );
   return (
     <AuthLayout heading="Create your account">
@@ -181,7 +239,8 @@ function RegisterPage({ onSwitch }) {
 
 export function AuthGate({ children }) {
   const { user } = useAuth();
-  const [view, setView] = useState("login"); // login | register | forgot
+  const [view, setView] = useState("login"); // login | register | forgot | codes
+  const [codes, setCodes] = useState(null); // { list, go } after sign-up
   if (user) return children;
   return (
     <Landing
@@ -190,8 +249,17 @@ export function AuthGate({ children }) {
           {view === "login" && (
             <LoginPage onSwitch={() => setView("register")} onForgot={() => setView("forgot")} />
           )}
-          {view === "register" && <RegisterPage onSwitch={() => setView("login")} />}
-          {view === "forgot" && <ForgotPassword onBack={() => setView("login")} />}
+          {view === "register" && (
+            <RegisterPage
+              onSwitch={() => setView("login")}
+              onCodes={(list, go) => {
+                setCodes({ list, go });
+                setView("codes");
+              }}
+            />
+          )}
+          {view === "forgot" && <RecoverAccount onBack={() => setView("login")} />}
+          {view === "codes" && codes && <SaveCodes codes={codes.list} onContinue={codes.go} />}
         </>
       }
     />
