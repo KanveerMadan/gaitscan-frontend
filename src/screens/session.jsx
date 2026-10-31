@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, DownloadSimple, Trash } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { KneeCurves } from "@/components/knee-curves";
+import { StrideReplay } from "@/components/stride-replay";
 import { ShareCard } from "@/components/share-card";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -161,6 +162,9 @@ export function SessionScreen() {
               <ResultHeadline result={session.result} />
               <MeasurementTable result={session.result} />
               <KneeCurves series={[{ label: "This session", result: session.result }]} />
+              <StrideReplay
+                series={[{ label: "This session", outline: session.result?.curves?.stride_outline }]}
+              />
               <PassTable result={session.result} />
               <QualitySummary quality={session.result?.quality} />
             </>
