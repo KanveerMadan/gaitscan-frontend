@@ -76,6 +76,14 @@ export const api = {
     return (await axios.post<JobQueued>(`${API}/analyses`, form)).data;
   },
   analysisStatus: async (jobId: string) => (await axios.get<JobStatus>(`${API}/analyses/${jobId}`)).data,
+  comments: async (sessionId: string) =>
+    (await axios.get<S["CommentOut"][]>(`${API}/sessions/${sessionId}/comments`)).data,
+  addComment: async (sessionId: string, body: string) =>
+    (await axios.post<S["CommentOut"]>(`${API}/sessions/${sessionId}/comments`, { body })).data,
+  inbox: async () => (await axios.get<S["Inbox"]>(`${API}/clinician/inbox`)).data,
+  inboxSeen: async () => {
+    await axios.post(`${API}/clinician/inbox/seen`);
+  },
   sessions: async () => (await axios.get<SessionOut[]>(`${API}/sessions`)).data,
   session: async (id: string) => (await axios.get<SessionDetail>(`${API}/sessions/${id}`)).data,
   labelSession: async (id: string, body: S["SessionLabels"]) =>

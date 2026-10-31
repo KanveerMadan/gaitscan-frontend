@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
-import { ChartLineUp, GearSix, ShieldCheck, Stethoscope, VideoCamera } from "@phosphor-icons/react";
+import { ChartLineUp, GearSix, ShieldCheck, Stethoscope, Tray, VideoCamera } from "@phosphor-icons/react";
 import { AuthProvider } from "@/auth";
 import { useAuth } from "@/auth-context";
 import { AppShell } from "@/components/app-shell";
@@ -16,6 +16,7 @@ const CompareScreen = lazy(() => import("@/screens/compare").then((m) => ({ defa
 const HistoryScreen = lazy(() => import("@/screens/history").then((m) => ({ default: m.HistoryScreen })));
 const SessionScreen = lazy(() => import("@/screens/session").then((m) => ({ default: m.SessionScreen })));
 const SetupScreen = lazy(() => import("@/screens/setup").then((m) => ({ default: m.SetupScreen })));
+const InboxScreen = lazy(() => import("@/screens/inbox").then((m) => ({ default: m.InboxScreen })));
 const SettingsScreen = lazy(() => import("@/screens/settings").then((m) => ({ default: m.SettingsScreen })));
 const PrivacyScreen = lazy(() => import("@/screens/privacy").then((m) => ({ default: m.PrivacyScreen })));
 const SharedPage = lazy(() => import("@/screens/shared").then((m) => ({ default: m.SharedPage })));
@@ -39,6 +40,7 @@ const PATIENT_SECTIONS = [
   { to: "/settings", label: "Settings", icon: GearSix },
 ];
 const CLINICIAN_SECTIONS = [
+  { to: "/inbox", label: "Inbox", icon: Tray },
   { to: "/patients", label: "Patients", icon: Stethoscope },
   { to: "/privacy", label: "Privacy", icon: ShieldCheck },
   { to: "/settings", label: "Settings", icon: GearSix },
@@ -51,10 +53,12 @@ function MainApp() {
       <AppShell sections={CLINICIAN_SECTIONS}>
         <Suspense fallback={<Loading />}>
           <Routes>
+            <Route path="/inbox" element={<InboxScreen />} />
             <Route path="/patients" element={<ClinicianScreen />} />
+            <Route path="/sessions/:id" element={<SessionScreen />} />
             <Route path="/privacy" element={<PrivacyScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />
-            <Route path="*" element={<Navigate to="/patients" replace />} />
+            <Route path="*" element={<Navigate to="/inbox" replace />} />
           </Routes>
         </Suspense>
       </AppShell>

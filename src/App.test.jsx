@@ -471,6 +471,34 @@ test("clinician dashboard shows no risk score or attention flag", async () => {
       },
     ],
   });
+  window.history.pushState({}, "", "/patients"); // a clinician's first screen is the inbox
+  render(<App />);
+  await screen.findByText("Pat");
+  expect(document.body.textContent).not.toMatch(BANNED);
+  expect(document.body.textContent).not.toMatch(REMOVED);
+});
+
+test("the clinician inbox shows no risk score or attention flag either", async () => {
+  signIn("clinician");
+  axios.get.mockResolvedValue({
+    data: {
+      seen_at: null,
+      items: [
+        {
+          session_id: "s1",
+          patient_id: 1,
+          patient_name: "Pat",
+          created_at: "2026-09-02T10:00:00",
+          cadence: 104,
+          comments: 1,
+          last_comment_at: null,
+          new: true,
+        },
+      ],
+    },
+  });
+  axios.post.mockResolvedValue({ status: 204 });
+  window.history.pushState({}, "", "/inbox");
   render(<App />);
   await screen.findByText("Pat");
   expect(document.body.textContent).not.toMatch(BANNED);

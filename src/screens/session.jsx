@@ -6,6 +6,8 @@ import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { KneeCurves } from "@/components/knee-curves";
 import { StrideReplay } from "@/components/stride-replay";
 import { ShareCard } from "@/components/share-card";
+import { CommentThread } from "@/components/comments";
+import { useAuth } from "@/auth-context";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,6 +124,8 @@ function DeleteSession({ id }) {
 
 export function SessionScreen() {
   const { id } = useParams();
+  // Clinicians see a linked patient's session read-only: notes, sharing and deleting stay the patient's.
+  const owner = useAuth()?.user?.role !== "clinician";
   const [session, setSession] = useState(null);
   const [error, setError] = useState(null);
 
@@ -136,9 +140,9 @@ export function SessionScreen() {
   return (
     <div className="flex flex-col gap-4">
       <Button asChild variant="outline" size="sm" className="self-start">
-        <Link to="/history">
+        <Link to={owner ? "/history" : "/inbox"}>
           <ArrowLeft aria-hidden />
-          All sessions
+          {owner ? "All sessions" : "Inbox"}
         </Link>
       </Button>
       {error && <Alert variant="destructive">{error}</Alert>}
@@ -168,9 +172,10 @@ export function SessionScreen() {
               <QualitySummary quality={session.result?.quality} />
             </>
           )}
-          <Labels session={session} />
-          {!session.legacy && <ShareCard sessionId={session.id} />}
-          <DeleteSession id={session.id} />
+          {!session.legacy && <CommentThread sessionId={session.id} />}
+          {owner && <Labels session={session} />}
+          {owner && !session.legacy && <ShareCard sessionId={session.id} />}
+          {owner && <DeleteSession id={session.id} />}
         </>
       )}
     </div>

@@ -134,5 +134,6 @@ test("a clinician sees a patient's session read-only, with comments", async () =
   expect(screen.queryByRole("button", { name: /delete this session/i })).toBeNull();
   expect(screen.queryByRole("button", { name: /create a link/i })).toBeNull();
   expect(screen.queryByLabelText(/notes/i)).toBeNull();
-  expect(screen.getByRole("link", { name: /inbox/i })).toHaveAttribute("href", "/inbox");
+  for (const link of screen.getAllByRole("link", { name: /inbox/i }))
+    expect(link).toHaveAttribute("href", "/inbox");
 });
