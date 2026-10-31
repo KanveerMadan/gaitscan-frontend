@@ -373,6 +373,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/me/settings": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Settings */
+    get: operations["get_settings_me_settings_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update Settings */
+    patch: operations["update_settings_me_settings_patch"];
+    trace?: never;
+  };
   "/patient/join": {
     parameters: {
       query?: never;
@@ -857,6 +875,43 @@ export interface components {
        */
       tags: string[];
     };
+    /** Settings */
+    Settings: {
+      /**
+       * Language
+       * @default en
+       * @enum {string}
+       */
+      language: "en" | "hi";
+      /** Retest Weeks */
+      retest_weeks?: (1 | 2 | 4 | 8 | 12) | null;
+      /**
+       * Theme
+       * @default system
+       * @enum {string}
+       */
+      theme: "system" | "light" | "dark";
+      /**
+       * Units
+       * @default metric
+       * @enum {string}
+       */
+      units: "metric" | "imperial";
+    };
+    /**
+     * SettingsUpdate
+     * @description Only the fields sent change; retest_weeks: null turns reminders off.
+     */
+    SettingsUpdate: {
+      /** Language */
+      language?: ("en" | "hi") | null;
+      /** Retest Weeks */
+      retest_weeks?: (1 | 2 | 4 | 8 | 12) | null;
+      /** Theme */
+      theme?: ("system" | "light" | "dark") | null;
+      /** Units */
+      units?: ("metric" | "imperial") | null;
+    };
     /** ShareCreate */
     ShareCreate: {
       /**
@@ -914,6 +969,7 @@ export interface components {
       recovery_codes_left?: number | null;
       /** Role */
       role: string;
+      settings?: components["schemas"]["Settings"] | null;
       /**
        * Token Type
        * @default bearer
@@ -930,6 +986,7 @@ export interface components {
       recovery_codes_left?: number | null;
       /** Role */
       role: string;
+      settings?: components["schemas"]["Settings"] | null;
       /**
        * Token Type
        * @default bearer
@@ -1590,6 +1647,59 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_settings_me_settings_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Settings"];
+        };
+      };
+    };
+  };
+  update_settings_me_settings_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SettingsUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Settings"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
