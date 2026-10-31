@@ -31,6 +31,8 @@ export const api = {
   login: async (body: S["LoginRequest"]) => (await axios.post<TokenResponse>(`${API}/auth/login`, body)).data,
   register: async (body: S["RegisterRequest"]) =>
     (await axios.post<SignupResponse>(`${API}/auth/register`, body)).data,
+  googleSignIn: async (credential: string) =>
+    (await axios.post<SignupResponse | TokenResponse>(`${API}/auth/google`, { credential })).data,
   recover: async (body: S["RecoverRequest"]) =>
     (await axios.post<{ message: string }>(`${API}/auth/recover`, body)).data,
   makeRecoveryCodes: async (password: string) =>
