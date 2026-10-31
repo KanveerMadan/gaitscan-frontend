@@ -2,6 +2,7 @@
 // (accuracy.mdc_95: two walks of the same person in the same session differ by less 95% of the time,
 // LJMU). Day-to-day variation is likely larger, and the page says so.
 import { useEffect, useState } from "react";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "react-router";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { api, errorMessage, formatDate } from "@/api/client";
@@ -64,8 +65,7 @@ export function CompareScreen() {
         <Alert variant="destructive">{error}</Alert>
       </div>
     );
-  if (!pair)
-    return <div className="h-40 animate-pulse rounded-lg bg-muted" aria-label="Loading comparison" />;
+  if (!pair) return <PageSkeleton label="Loading comparison" />;
 
   const [earlier, later] = pair;
   const m0 = earlier.result?.metrics ?? {};

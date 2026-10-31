@@ -6,6 +6,7 @@ import { useAuth } from "@/auth-context";
 import { AppShell } from "@/components/app-shell";
 import { AnalyseScreen } from "@/screens/analyse";
 import { AuthGate } from "@/screens/auth";
+import { PageSkeleton } from "@/components/ui/skeleton";
 
 // Screens other than sign-in and upload load on demand (smaller first load).
 const ClinicianScreen = lazy(() =>
@@ -28,7 +29,7 @@ const LearnMetric = lazy(() => import("@/screens/learn").then((m) => ({ default:
 const WelcomeScreen = lazy(() => import("@/onboarding/welcome").then((m) => ({ default: m.WelcomeScreen })));
 
 function Loading() {
-  return <div className="h-40 animate-pulse rounded-lg bg-muted" aria-label="Loading" />;
+  return <PageSkeleton />;
 }
 
 const PATIENT_SECTIONS = [

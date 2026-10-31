@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowClockwise, ArrowsLeftRight, DownloadSimple, Tray } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowsLeftRight, DownloadSimple } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,8 @@ import { nextTestDue } from "@/lib/reminders";
 import { ReminderButton } from "@/screens/settings";
 import { SessionSummary } from "@/measurements";
 import { cn } from "@/lib/utils";
+import { EmptyState, LoadError } from "@/components/states";
+import { ListSkeleton } from "@/components/ui/skeleton";
 
 // sessions: newest first. `linkTo(s)` makes each date a link; `selected`/`onToggle` add checkboxes.
 export function SessionList({ sessions, linkTo, selected, onToggle }) {
@@ -61,16 +63,6 @@ export function SessionList({ sessions, linkTo, selected, onToggle }) {
         );
       })}
     </ul>
-  );
-}
-
-export function EmptyState({ title, children }) {
-  return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-14 text-center">
-      <Tray size={28} className="text-muted-foreground" aria-hidden />
-      <p className="text-sm font-medium">{title}</p>
-      {children && <p className="max-w-[45ch] text-sm text-muted-foreground">{children}</p>}
-    </div>
   );
 }
 
@@ -242,12 +234,14 @@ export function HistoryScreen() {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState(null);
 
+  const [failed, setFailed] = useState(false);
   const fetchHistory = async () => {
     setLoading(true);
+    setFailed(false);
     try {
       setSessions((await api.sessions()) || []);
     } catch {
-      setSessions([]);
+      setFailed(true);
     }
     setLoading(false);
   };
@@ -278,14 +272,9 @@ export function HistoryScreen() {
           Refresh
         </Button>
       </div>
-      {loading && (
-        <div className="grid gap-3" aria-label="Loading history">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
-          ))}
-        </div>
-      )}
-      {!loading && sessions.length === 0 && (
+      {loading && <ListSkeleton label="Loading history" />}
+      {!loading && failed && <LoadError message="Couldn't load your sessions." onRetry={fetchHistory} />}
+      {!loading && !failed && sessions.length === 0 && (
         <EmptyState title="No sessions yet.">
           Analyse a video to start tracking your walking over time.
         </EmptyState>

@@ -8,6 +8,7 @@ import {
   Line,
   ReferenceLine,
 } from "recharts";
+import { AXIS, GRID, SERIES, TOOLTIP } from "@/components/chart-theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Trends use current-version sessions only; legacy sessions are never mixed in.
@@ -32,10 +33,10 @@ export function CadenceTrend({ sessions, goal = null }) {
       <CardContent>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
-            <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} domain={["auto", "auto"]} />
-            <Tooltip formatter={(v) => [`${v} steps/min`, "Cadence"]} />
+            <CartesianGrid {...GRID} />
+            <XAxis dataKey="date" {...AXIS} />
+            <YAxis {...AXIS} width={36} domain={["auto", "auto"]} />
+            <Tooltip {...TOOLTIP} formatter={(v) => [`${v} steps/min`, "Cadence"]} />
             {goal != null && (
               <ReferenceLine
                 y={goal}
@@ -44,7 +45,14 @@ export function CadenceTrend({ sessions, goal = null }) {
                 ifOverflow="extendDomain"
               />
             )}
-            <Line type="monotone" dataKey="cadence" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 3 }} />
+            <Line
+              type="monotone"
+              dataKey="cadence"
+              stroke={SERIES[0]}
+              strokeWidth={2}
+              dot={{ r: 3, fill: SERIES[0] }}
+              activeDot={{ r: 5 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

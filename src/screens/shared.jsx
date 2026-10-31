@@ -1,5 +1,6 @@
 // A session opened from a share link: read-only measurements, no account needed.
 import { useEffect, useState } from "react";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router";
 import { api, errorMessage, forgetLinkToken, formatDate, takeLinkToken } from "@/api/client";
 import { Brand, Disclaimer } from "@/components/app-shell";
@@ -37,7 +38,7 @@ export function SharedPage() {
       <Disclaimer />
       <main className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8">
         {error && <Alert variant="destructive">{error}</Alert>}
-        {!shared && !error && <div className="h-40 animate-pulse rounded-lg bg-muted" aria-label="Loading" />}
+        {!shared && !error && <PageSkeleton label="Loading" />}
         {shared && (
           <>
             <div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageSkeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, DownloadSimple, Trash } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
@@ -141,9 +142,7 @@ export function SessionScreen() {
         </Link>
       </Button>
       {error && <Alert variant="destructive">{error}</Alert>}
-      {!session && !error && (
-        <div className="h-40 animate-pulse rounded-lg bg-muted" aria-label="Loading session" />
-      )}
+      {!session && !error && <PageSkeleton label="Loading session" />}
       {session && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">

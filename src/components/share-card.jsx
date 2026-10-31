@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Copy, LinkSimple } from "@phosphor-icons/react";
 import { api, errorMessage, formatDate } from "@/api/client";
 import { Alert } from "@/components/ui/alert";
+import { LoadError } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,11 +14,14 @@ export function ShareCard({ sessionId }) {
   const [created, setCreated] = useState(null);
   const [error, setError] = useState(null);
 
-  const load = () =>
-    api
+  const [listFailed, setListFailed] = useState(false);
+  const load = () => {
+    setListFailed(false);
+    return api
       .shares(sessionId)
       .then(setShares)
-      .catch(() => setShares([]));
+      .catch(() => setListFailed(true));
+  };
   useEffect(() => {
     load();
   }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -52,6 +56,7 @@ export function ShareCard({ sessionId }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {error && <Alert variant="destructive">{error}</Alert>}
+        {listFailed && <LoadError message="Couldn't load your share links." onRetry={load} />}
         <Button variant="outline" className="self-start" onClick={create}>
           <LinkSimple aria-hidden />
           Create a link

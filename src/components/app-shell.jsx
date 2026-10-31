@@ -1,6 +1,6 @@
 // App shell: header (brand, sections, account), the not-a-medical-device note, and the page column.
 import { useState } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { Key, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "@/auth-context";
 import { BrandMark } from "@/components/brand-mark";
@@ -35,6 +35,7 @@ export function Brand() {
 
 // sections: [{ to, label, icon, end }], rendered as links (the router marks the current one).
 export function AppShell({ sections, children }) {
+  const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const role = user?.role === "clinician" ? "Clinician" : "Patient";
@@ -115,7 +116,7 @@ export function AppShell({ sections, children }) {
       </header>
       <RecoveryPrompt />
       <Disclaimer />
-      <main id="main" className="mx-auto max-w-5xl px-4 py-8">
+      <main id="main" key={pathname} className="page-enter mx-auto max-w-5xl px-4 py-8">
         {children}
       </main>
     </div>
