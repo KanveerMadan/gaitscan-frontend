@@ -19,8 +19,8 @@ beforeEach(() => {
 
 test("a new account is taken through how GaitScan works, ending at the upload", async () => {
   axios.post.mockResolvedValueOnce({ data: { access_token: "tok", role: "patient", full_name: "New" } });
+  window.history.pushState({}, "", "/signup");
   render(<App />);
-  fireEvent.click(screen.getByText("Create one"));
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: "new@example.com" } });
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: "a-long-password" } });
   await act(async () => {
@@ -52,7 +52,7 @@ test("anyone can see an example result without signing up", async () => {
   expect(await screen.findByRole("heading", { name: /example result/i })).toBeInTheDocument();
   expect(screen.getByText(/simulated walker/i)).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Measurements" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute("href", "/signup");
 });
 
 test("the sign-in page links to the example", () => {

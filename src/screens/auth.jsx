@@ -1,20 +1,52 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
 import { CodeList, SaveCodesNotice } from "@/components/recovery-codes";
+import { BrandMark } from "@/components/brand-mark";
+import { WalkerCanvas } from "@/landing/walker-canvas";
 import { Landing } from "@/screens/landing";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// The sign-in / register / reset card; the landing page places it beside its hero.
+// The sign-in / register / recovery forms; AuthScreen frames them beside the walking figure.
 function AuthLayout({ heading, children }) {
   return (
-    <div className="w-full rounded-lg border bg-surface p-6 shadow-sm">
-      <h2 className="text-lg font-semibold tracking-tight">{heading}</h2>
-      <div className="mt-5 flex flex-col gap-4">{children}</div>
+    <div className="w-full">
+      <h1 className="text-2xl font-semibold tracking-[-0.02em]">{heading}</h1>
+      <div className="mt-6 flex flex-col gap-4">{children}</div>
+    </div>
+  );
+}
+
+function AuthScreen({ children }) {
+  return (
+    <div className="grid min-h-[100svh] bg-background lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <aside className="relative flex h-44 flex-col bg-stage text-stage-foreground lg:h-auto">
+        <Link
+          to="/"
+          className="absolute top-5 left-5 z-10 flex items-center gap-2"
+          aria-label="GaitScan home"
+        >
+          <BrandMark className="size-6 text-stage-accent" />
+          <span className="text-[17px] font-semibold tracking-tight">GaitScan</span>
+        </Link>
+        <div className="flex-1 pt-10 lg:pt-0">
+          <WalkerCanvas skeleton events label="A person walking, drawn as the points GaitScan tracks" />
+        </div>
+        <p className="hidden px-8 pb-8 text-sm leading-relaxed text-stage-muted lg:block">
+          Your walk, as GaitScan sees it: twelve points followed through every frame.
+        </p>
+      </aside>
+      <main className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
+        <div className="w-full max-w-sm">{children}</div>
+        <p role="note" className="mt-10 max-w-sm text-xs leading-relaxed text-muted-foreground">
+          GaitScan is an experimental measurement tool, not a medical device. It does not diagnose conditions
+          or predict outcomes, and its measurements have not been clinically validated.
+        </p>
+      </main>
     </div>
   );
 }
@@ -28,9 +60,9 @@ function Field({ id, label, ...props }) {
   );
 }
 
-function useSubmit(call, fallback, then = "", onCodes = null) {
+// Where to go next is the router's job (App.jsx): signed in at /signup leads to the walkthrough.
+function useSubmit(call, fallback, onCodes = null) {
   const { login } = useAuth();
-  const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const submit = async (form) => {
@@ -44,15 +76,8 @@ function useSubmit(call, fallback, then = "", onCodes = null) {
         name: res.full_name,
         recoveryCodesLeft: res.recovery_codes?.length ?? res.recovery_codes_left,
       };
-      if (res.recovery_codes) {
-        onCodes?.(res.recovery_codes, () => {
-          navigate(then);
-          login(session);
-        });
-      } else {
-        if (then) navigate(then);
-        login(session);
-      }
+      if (res.recovery_codes && onCodes) onCodes(res.recovery_codes, () => login(session));
+      else login(session);
     } catch (e) {
       setError(errorMessage(e, fallback));
     }
@@ -139,7 +164,7 @@ function SaveCodes({ codes, onContinue }) {
   );
 }
 
-function LoginPage({ onSwitch, onForgot }) {
+function LoginPage({ onForgot }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const { error, loading, submit } = useSubmit(api.login, "Login failed. Please try again.");
   const onKeyDown = (e) => e.key === "Enter" && submit(form);
@@ -174,9 +199,9 @@ function LoginPage({ onSwitch, onForgot }) {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
-        <Button variant="link" className="h-auto p-0" onClick={onSwitch}>
+        <Link to="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
           Create one
-        </Button>
+        </Link>
       </p>
       <p className="text-center text-sm">
         <Link to="/demo" className="text-primary underline-offset-4 hover:underline">
@@ -187,12 +212,11 @@ function LoginPage({ onSwitch, onForgot }) {
   );
 }
 
-function RegisterPage({ onSwitch, onCodes }) {
+function RegisterPage({ onCodes }) {
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const { error, loading, submit } = useSubmit(
     api.register,
     "Registration failed. Please try again.",
-    "/welcome",
     onCodes,
   );
   return (
@@ -229,39 +253,34 @@ function RegisterPage({ onSwitch, onCodes }) {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Button variant="link" className="h-auto p-0" onClick={onSwitch}>
+        <Link to="/signin" className="font-medium text-primary underline-offset-4 hover:underline">
           Sign in
-        </Button>
+        </Link>
       </p>
     </AuthLayout>
   );
 }
 
 export function AuthGate({ children }) {
-  const { user } = useAuth();
-  const [view, setView] = useState("login"); // login | register | forgot | codes
-  const [codes, setCodes] = useState(null); // { list, go } after sign-up
+  const { user, expired } = useAuth();
+  const { pathname } = useLocation();
+  // /signup and /signin pick the form; recovering a password and saving codes are steps within it,
+  // forgotten when the address changes.
+  const [step, setStep] = useState({ path: null, name: null, codes: null });
   if (user) return children;
+  if (pathname === "/" && !expired) return <Landing />;
+  const current = step.path === pathname ? step : { name: null };
+  const go = (name, codes = null) => setStep({ path: pathname, name, codes });
   return (
-    <Landing
-      card={
-        <>
-          {view === "login" && (
-            <LoginPage onSwitch={() => setView("register")} onForgot={() => setView("forgot")} />
-          )}
-          {view === "register" && (
-            <RegisterPage
-              onSwitch={() => setView("login")}
-              onCodes={(list, go) => {
-                setCodes({ list, go });
-                setView("codes");
-              }}
-            />
-          )}
-          {view === "forgot" && <RecoverAccount onBack={() => setView("login")} />}
-          {view === "codes" && codes && <SaveCodes codes={codes.list} onContinue={codes.go} />}
-        </>
-      }
-    />
+    <AuthScreen>
+      {current.name === "codes" && <SaveCodes codes={current.codes.list} onContinue={current.codes.go} />}
+      {current.name === "forgot" && <RecoverAccount onBack={() => go(null)} />}
+      {!current.name &&
+        (pathname === "/signup" ? (
+          <RegisterPage onCodes={(list, done) => go("codes", { list, go: done })} />
+        ) : (
+          <LoginPage onForgot={() => go("forgot")} />
+        ))}
+    </AuthScreen>
   );
 }

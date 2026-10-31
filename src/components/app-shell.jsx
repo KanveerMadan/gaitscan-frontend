@@ -3,7 +3,7 @@ import { useState } from "react";
 import { NavLink } from "react-router";
 import { Key, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "@/auth-context";
-import { Badge } from "@/components/ui/badge";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RecoveryPrompt } from "@/components/recovery-codes";
@@ -27,8 +27,8 @@ export function Disclaimer() {
 export function Brand() {
   return (
     <span className="flex items-center gap-2">
-      <span className="text-lg font-semibold tracking-tight">GaitScan</span>
-      <Badge variant="muted">Beta</Badge>
+      <BrandMark className="size-6 text-primary" />
+      <span className="text-[17px] font-semibold tracking-tight">GaitScan</span>
     </span>
   );
 }

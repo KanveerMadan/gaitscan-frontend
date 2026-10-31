@@ -22,15 +22,20 @@ export function AuthProvider({ children }) {
     return stored;
   });
 
+  // An expired session goes to the sign-in screen; signing out on purpose goes to the landing page.
+  const [expired, setExpired] = useState(false);
+
   const login = (userData) => {
     localStorage.setItem("gaitscan_user", JSON.stringify(userData));
     setAuthHeader(userData);
+    setExpired(false);
     setUser(userData);
   };
 
-  const logout = () => {
+  const logout = (sessionExpired = false) => {
     localStorage.removeItem("gaitscan_user");
     setAuthHeader(null);
+    setExpired(sessionExpired === true);
     setUser(null);
   };
 
@@ -39,12 +44,12 @@ export function AuthProvider({ children }) {
     const id = axios.interceptors.response.use(
       (res) => res,
       (err) => {
-        if (err.response?.status === 401) logout();
+        if (err.response?.status === 401) logout(true);
         return Promise.reject(err);
       },
     );
     return () => axios.interceptors.response.eject?.(id);
   }, []);
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, login, logout, expired }}>{children}</AuthContext.Provider>;
 }
