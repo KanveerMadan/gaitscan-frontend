@@ -877,6 +877,8 @@ export interface components {
     };
     /** Settings */
     Settings: {
+      /** Goal Cadence */
+      goal_cadence?: number | null;
       /**
        * Language
        * @default en
@@ -900,9 +902,11 @@ export interface components {
     };
     /**
      * SettingsUpdate
-     * @description Only the fields sent change; retest_weeks: null turns reminders off.
+     * @description Only the fields sent change; retest_weeks / goal_cadence: null turns them off.
      */
     SettingsUpdate: {
+      /** Goal Cadence */
+      goal_cadence?: number | null;
       /** Language */
       language?: ("en" | "hi") | null;
       /** Retest Weeks */
