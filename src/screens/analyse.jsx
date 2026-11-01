@@ -6,6 +6,7 @@ import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
 import { useAuth } from "@/auth-context";
 import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { WalkerCanvas } from "@/landing/walker-canvas";
 import { takeRecording } from "@/setup/record";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,16 @@ const STEPS = [
   "Walk across the frame and back at your usual pace, 10-20 s",
 ];
 
+// Treadmill belt speeds the backend accepts (app/api/analysis.py BELT_KMH_RANGE): walking, not running.
+const BELT_KMH = [0.5, 10];
+const KMH_PER_MPH = 1.609344;
+
 export function AnalyseScreen() {
-  const profiles = useAuth()?.user?.profiles ?? [];
+  const { user } = useAuth() ?? {};
+  const profiles = user?.profiles ?? [];
+  const imperial = user?.settings?.units === "imperial";
+  const [testType, setTestType] = useState("walk"); // "walk" | "treadmill"
+  const [belt, setBelt] = useState(""); // as typed, in km/h or mph (Settings units)
   const [profileId, setProfileId] = useState(null); // null: the account holder
   const [stage, setStage] = useState("upload");
   const [dragOver, setDragOver] = useState(false);
@@ -50,6 +59,18 @@ export function AnalyseScreen() {
       return;
     }
     setError(null);
+    if (testType === "treadmill") {
+      const kmh = Number(belt) * (imperial ? KMH_PER_MPH : 1);
+      if (!belt || !(kmh >= BELT_KMH[0] && kmh <= BELT_KMH[1])) {
+        const range = imperial
+          ? `${(BELT_KMH[0] / KMH_PER_MPH).toFixed(1)} to ${(BELT_KMH[1] / KMH_PER_MPH).toFixed(1)} mph`
+          : `${BELT_KMH[0]} to ${BELT_KMH[1]} km/h`;
+        setError(`Enter the belt speed the treadmill shows, from ${range}, then choose the video again.`);
+        return;
+      }
+      analyse(file, null, { test: "treadmill", belt_speed_kmh: String(Number(kmh.toFixed(2))) });
+      return;
+    }
     if (calibrate) {
       setPendingFile(file);
       setStage("calibrate");
@@ -58,11 +79,11 @@ export function AnalyseScreen() {
     analyse(file);
   };
 
-  const analyse = async (file, calibration = null) => {
+  const analyse = async (file, calibration = null, fields = {}) => {
     setStage("processing");
     setProgress("Uploading video…");
     try {
-      const job = await api.submitAnalysis(file, calibration ?? undefined, profileId);
+      const job = await api.submitAnalysis(file, calibration ?? undefined, profileId, fields);
       setProgress("Waiting for the analysis to start…");
       const done = await waitForAnalysis(job.job_id, (s) => {
         if (s.status === "running") setProgress("Finding the body in every frame and measuring the steps…");
@@ -194,6 +215,46 @@ export function AnalyseScreen() {
           </p>
         </div>
         {error && <Alert variant="destructive">{error}</Alert>}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-medium">What are you filming?</legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {[
+              ["walk", "Walking across the floor"],
+              ["treadmill", "On a treadmill"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="test-type"
+                  value={value}
+                  checked={testType === value}
+                  onChange={() => setTestType(value)}
+                  className="size-4 accent-[var(--primary)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {testType === "treadmill" && (
+          <div className="flex flex-col gap-2">
+            <div className="grid max-w-xs gap-2">
+              <label htmlFor="belt-speed" className="text-sm font-medium">
+                Belt speed ({imperial ? "mph" : "km/h"})
+              </label>
+              <Input
+                id="belt-speed"
+                inputMode="decimal"
+                value={belt}
+                onChange={(e) => setBelt(e.target.value.replace(",", "."))}
+              />
+            </div>
+            <p className="max-w-[60ch] text-xs text-muted-foreground">
+              As the treadmill shows it. Treadmill results aren't validated yet and differ from walking over
+              the ground, so compare them only with your other treadmill tests.
+            </p>
+          </div>
+        )}
         {profiles.length > 0 && (
           <div className="grid max-w-xs gap-2">
             <label htmlFor="who-is-walking" className="text-sm font-medium">
@@ -249,16 +310,18 @@ export function AnalyseScreen() {
           className="hidden"
           onChange={(e) => handleFile(e.target.files[0])}
         />
-        <label className="flex items-start gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            className="mt-0.5 size-4 accent-[var(--primary)]"
-            checked={calibrate}
-            onChange={(e) => setCalibrate(e.target.checked)}
-          />
-          I marked two points on the floor a known distance apart (optional: adds step length and walking
-          speed)
-        </label>
+        {testType === "walk" && (
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-[var(--primary)]"
+              checked={calibrate}
+              onChange={(e) => setCalibrate(e.target.checked)}
+            />
+            I marked two points on the floor a known distance apart (optional: adds step length and walking
+            speed)
+          </label>
+        )}
       </div>
       <aside className="self-start rounded-lg border bg-surface p-5">
         <h2 className="text-sm font-semibold">How to record</h2>

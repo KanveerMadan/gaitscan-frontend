@@ -69,11 +69,18 @@ export const api = {
   deleteAccount: async (password: string) => {
     await axios.delete(`${API}/me`, { data: { password } });
   },
-  submitAnalysis: async (video: File, calibration?: Calibration, profileId?: number | null) => {
+  // `fields`: other form fields, e.g. { test: "treadmill", belt_speed_kmh: "4.5" }.
+  submitAnalysis: async (
+    video: File,
+    calibration?: Calibration,
+    profileId?: number | null,
+    fields: Record<string, string> = {},
+  ) => {
     const form = new FormData();
     form.append("video", video);
     for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
     if (profileId != null) form.append("profile_id", String(profileId));
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
     return (await axios.post<JobQueued>(`${API}/analyses`, form)).data;
   },
   analysisStatus: async (jobId: string) => (await axios.get<JobStatus>(`${API}/analyses/${jobId}`)).data,

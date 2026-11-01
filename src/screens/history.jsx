@@ -12,6 +12,7 @@ import { useAuth } from "@/auth-context";
 import { nextTestDue } from "@/lib/reminders";
 import { ReminderButton } from "@/screens/settings";
 import { SessionSummary } from "@/measurements";
+import { isTreadmill } from "@/lib/results";
 import { cn } from "@/lib/utils";
 import { EmptyState, LoadError } from "@/components/states";
 import { ListSkeleton } from "@/components/ui/skeleton";
@@ -257,7 +258,7 @@ export function HistoryScreen() {
   // One person at a time: trends and goals mixing two people's walking would mean nothing.
   const theirs = allSessions.filter((s) => String(s.profile_id ?? "") === who);
   const sessions = profiles.length > 0 ? theirs : allSessions;
-  const latest = sessions.find((s) => !s.legacy);
+  const latest = sessions.find((s) => !s.legacy && !isTreadmill(s.result)); // the latest walk over the ground
   const tags = [...new Set(sessions.flatMap((s) => s.tags ?? []))].sort();
   const q = query.trim().toLowerCase();
   const shown = sessions.filter(

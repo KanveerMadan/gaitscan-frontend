@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { useAuth } from "@/auth-context";
 import { Info, Warning } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
+import { isTreadmill } from "@/lib/results";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -13,6 +14,14 @@ const ROWS = [
   ["peak_knee_flexion", "Peak knee bend (per stride)", "peak-knee-flexion"],
   ["step_length", "Step length", "step-length"],
   ["walking_speed", "Walking speed", "walking-speed"],
+];
+// A treadmill test (backend gaitcore pipeline): the belt speed is entered, and step length comes from it.
+const TREADMILL_ROWS = [
+  ["cadence", "Cadence", "cadence"],
+  ["step_time", "Step time", "step-time"],
+  ["peak_knee_flexion", "Peak knee bend (per stride)", "peak-knee-flexion"],
+  ["belt_speed", "Belt speed (entered)", null],
+  ["step_length", "Step length (from the belt speed)", "step-length"],
 ];
 
 // No reference check yet (backend gaitcore/accuracy.py): knee angles until Phase 8, calibrated
@@ -106,8 +115,18 @@ export function ResultHeadline({ result }) {
       </div>
       {q.steps_detected != null && (
         <p className="border-t bg-surface px-5 py-3 text-xs text-muted-foreground sm:px-6">
-          From {q.steps_detected} steps in {q.passes ?? 1} pass{q.passes === 1 ? "" : "es"} of steady walking
-          {q.steady_walking_s != null ? ` (${q.steady_walking_s} s)` : ""}.
+          {isTreadmill(result) ? (
+            <>
+              From {q.steps_detected} steps
+              {q.in_place_s != null ? ` in ${q.in_place_s} s` : ""} of walking on a treadmill.
+            </>
+          ) : (
+            <>
+              From {q.steps_detected} steps in {q.passes ?? 1} pass{q.passes === 1 ? "" : "es"} of steady
+              walking
+              {q.steady_walking_s != null ? ` (${q.steady_walking_s} s)` : ""}.
+            </>
+          )}
         </p>
       )}
     </section>
@@ -116,6 +135,7 @@ export function ResultHeadline({ result }) {
 
 export function MeasurementTable({ result }) {
   const m = result?.metrics ?? {};
+  const treadmill = isTreadmill(result);
   return (
     <Card aria-label="Measurements" role="region">
       <CardHeader>
@@ -133,23 +153,29 @@ export function MeasurementTable({ result }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ROWS.filter(([key]) => key in m).map(([key, label, slug]) => {
-              const item = m[key];
-              const perLeg = item && ("left" in item || "right" in item);
-              return (
-                <TableRow key={key}>
-                  <TableCell className="font-medium">
-                    <Link to={`/learn/${slug}`} className="underline-offset-4 hover:underline">
-                      {label}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{perLeg && <Value item={item.left} />}</TableCell>
-                  <TableCell>{perLeg && <Value item={item.right} />}</TableCell>
-                  <TableCell>{!perLeg && <Value item={item} />}</TableCell>
-                  <TableCell>{accuracyText(result, key)}</TableCell>
-                </TableRow>
-              );
-            })}
+            {(treadmill ? TREADMILL_ROWS : ROWS)
+              .filter(([key]) => key in m)
+              .map(([key, label, slug]) => {
+                const item = m[key];
+                const perLeg = item && ("left" in item || "right" in item);
+                return (
+                  <TableRow key={key}>
+                    <TableCell className="font-medium">
+                      {slug ? (
+                        <Link to={`/learn/${slug}`} className="underline-offset-4 hover:underline">
+                          {label}
+                        </Link>
+                      ) : (
+                        label
+                      )}
+                    </TableCell>
+                    <TableCell>{perLeg && <Value item={item.left} />}</TableCell>
+                    <TableCell>{perLeg && <Value item={item.right} />}</TableCell>
+                    <TableCell>{!perLeg && <Value item={item} />}</TableCell>
+                    <TableCell>{accuracyText(result, key)}</TableCell>
+                  </TableRow>
+                );
+              })}
           </TableBody>
         </Table>
         {(result?.notes ?? []).map((note) => (
@@ -158,13 +184,21 @@ export function MeasurementTable({ result }) {
             {note}
           </p>
         ))}
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error
-          range: in an accuracy check on side-view walks from a public dataset (LJMU, Topham et al. 2023), 95%
-          of measurements were within this much of the reference.
-          {!("step_length" in m) &&
-            " Step length and walking speed need a floor calibration and were not measured."}
-        </p>
+        {treadmill ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Values are the median (angles) or mean (times) over the strides measured, ± their spread. The
+            accuracy check behind GaitScan's error ranges used walks over the ground, so none of these is
+            validated on a treadmill yet. Step length is the belt speed you entered times the step time.
+          </p>
+        ) : (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error
+            range: in an accuracy check on side-view walks from a public dataset (LJMU, Topham et al. 2023),
+            95% of measurements were within this much of the reference.
+            {!("step_length" in m) &&
+              " Step length and walking speed need a floor calibration and were not measured."}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -273,7 +307,8 @@ export function SessionSummary({ session }) {
   }
   const m = session.result?.metrics ?? {};
   return (
-    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      {isTreadmill(session.result) && <Badge variant="muted">Treadmill</Badge>}
       <span>
         Cadence: <strong className="tabular font-medium text-foreground">{formatValue(m.cadence)}</strong>
       </span>

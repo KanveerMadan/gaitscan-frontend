@@ -10,11 +10,13 @@ import {
 } from "recharts";
 import { AXIS, GRID, SERIES, TOOLTIP } from "@/components/chart-theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { isTreadmill } from "@/lib/results";
 
-// Trends use current-version sessions only; legacy sessions are never mixed in.
+// Trends use current-version walks over the ground only; legacy sessions and treadmill tests (other
+// conditions, not validated) are never mixed in.
 export function CadenceTrend({ sessions, goal = null }) {
   const data = [...(sessions || [])]
-    .filter((s) => !s.legacy && s.result?.metrics?.cadence?.value != null)
+    .filter((s) => !s.legacy && !isTreadmill(s.result) && s.result?.metrics?.cadence?.value != null)
     .reverse()
     .map((s) => ({
       date: new Date(s.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
