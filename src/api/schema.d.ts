@@ -657,6 +657,8 @@ export interface components {
     };
     /** Body_analyze_analyze_post */
     Body_analyze_analyze_post: {
+      /** Belt Speed Kmh */
+      belt_speed_kmh?: number | null;
       /** Calib Distance M */
       calib_distance_m?: number | null;
       /** Calib X1 */
@@ -681,6 +683,8 @@ export interface components {
     };
     /** Body_submit_analysis_analyses_post */
     Body_submit_analysis_analyses_post: {
+      /** Belt Speed Kmh */
+      belt_speed_kmh?: number | null;
       /** Calib Distance M */
       calib_distance_m?: number | null;
       /** Calib X1 */
