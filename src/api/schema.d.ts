@@ -459,6 +459,42 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/profiles": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Profiles */
+    get: operations["list_profiles_profiles_get"];
+    put?: never;
+    /** Create Profile */
+    post: operations["create_profile_profiles_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/profiles/{profile_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Profile */
+    delete: operations["delete_profile_profiles__profile_id__delete"];
+    options?: never;
+    head?: never;
+    /** Rename Profile */
+    patch: operations["rename_profile_profiles__profile_id__patch"];
+    trace?: never;
+  };
   "/report/{job_id}": {
     parameters: {
       query?: never;
@@ -483,7 +519,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List Sessions */
+    /**
+     * List Sessions
+     * @description All the account's sessions; `profile_id` narrows to one profile ('self' = the account holder).
+     */
     get: operations["list_sessions_sessions_get"];
     put?: never;
     post?: never;
@@ -630,6 +669,8 @@ export interface components {
       calib_y2?: number | null;
       /** Patient Name */
       patient_name?: string | null;
+      /** Profile Id */
+      profile_id?: number | null;
       /**
        * Test
        * @default walk
@@ -652,6 +693,8 @@ export interface components {
       calib_y2?: number | null;
       /** Patient Name */
       patient_name?: string | null;
+      /** Profile Id */
+      profile_id?: number | null;
       /**
        * Test
        * @default walk
@@ -841,6 +884,29 @@ export interface components {
       /** Session Count */
       session_count: number;
     };
+    /** ProfileIn */
+    ProfileIn: {
+      /** Birth Year */
+      birth_year: number;
+      /** Is Adult */
+      is_adult: boolean;
+      /** Name */
+      name: string;
+    };
+    /** ProfileOut */
+    ProfileOut: {
+      /** Birth Year */
+      birth_year: number;
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+    };
+    /** ProfileRename */
+    ProfileRename: {
+      /** Name */
+      name: string;
+    };
     /** RecoverRequest */
     RecoverRequest: {
       /** Code */
@@ -954,6 +1020,8 @@ export interface components {
       patient_name: string | null;
       /** Pipeline Version */
       pipeline_version: string;
+      /** Profile Id */
+      profile_id?: number | null;
       result: components["schemas"]["Result"] | null;
       /**
        * Tags
@@ -988,6 +1056,8 @@ export interface components {
       patient_name: string | null;
       /** Pipeline Version */
       pipeline_version: string;
+      /** Profile Id */
+      profile_id?: number | null;
       result: components["schemas"]["Result"] | null;
       /**
        * Tags
@@ -1087,6 +1157,8 @@ export interface components {
       access_token: string;
       /** Full Name */
       full_name?: string | null;
+      /** Profiles */
+      profiles?: components["schemas"]["ProfileOut"][] | null;
       /** Recovery Codes */
       recovery_codes: string[];
       /** Recovery Codes Left */
@@ -1106,6 +1178,8 @@ export interface components {
       access_token: string;
       /** Full Name */
       full_name?: string | null;
+      /** Profiles */
+      profiles?: components["schemas"]["ProfileOut"][] | null;
       /** Recovery Codes Left */
       recovery_codes_left?: number | null;
       /** Role */
@@ -1933,6 +2007,123 @@ export interface operations {
       };
     };
   };
+  list_profiles_profiles_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProfileOut"][];
+        };
+      };
+    };
+  };
+  create_profile_profiles_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProfileIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProfileOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_profile_profiles__profile_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profile_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  rename_profile_profiles__profile_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        profile_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProfileRename"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProfileOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_report_report__job_id__get: {
     parameters: {
       query?: never;
@@ -1966,7 +2157,9 @@ export interface operations {
   };
   list_sessions_sessions_get: {
     parameters: {
-      query?: never;
+      query?: {
+        profile_id?: string | null;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -1980,6 +2173,15 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SessionOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };
