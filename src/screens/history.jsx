@@ -228,11 +228,13 @@ function JoinClinicianCard() {
 
 export function HistoryScreen() {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState([]);
+  const [allSessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true); // no "no sessions yet" flash before the first load
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState(null);
+  const profiles = user?.profiles ?? [];
+  const [who, setWho] = useState(""); // "": the account holder; else a profile's id
 
   const [failed, setFailed] = useState(false);
   const fetchHistory = async () => {
@@ -252,6 +254,9 @@ export function HistoryScreen() {
 
   const toggle = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(-2)));
+  // One person at a time: trends and goals mixing two people's walking would mean nothing.
+  const theirs = allSessions.filter((s) => String(s.profile_id ?? "") === who);
+  const sessions = profiles.length > 0 ? theirs : allSessions;
   const latest = sessions.find((s) => !s.legacy);
   const tags = [...new Set(sessions.flatMap((s) => s.tags ?? []))].sort();
   const q = query.trim().toLowerCase();
@@ -272,6 +277,29 @@ export function HistoryScreen() {
           Refresh
         </Button>
       </div>
+      {profiles.length > 0 && (
+        <div className="grid max-w-xs gap-2">
+          <label htmlFor="whose-walking" className="text-sm font-medium">
+            Whose walking
+          </label>
+          <select
+            id="whose-walking"
+            className="h-10 rounded-md border border-input bg-surface px-3 text-sm"
+            value={who}
+            onChange={(e) => {
+              setWho(e.target.value);
+              setSelected([]);
+            }}
+          >
+            <option value="">You</option>
+            {profiles.map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {loading && <ListSkeleton label="Loading history" />}
       {!loading && failed && <LoadError message="Couldn't load your sessions." onRetry={fetchHistory} />}
       {!loading && !failed && sessions.length === 0 && (

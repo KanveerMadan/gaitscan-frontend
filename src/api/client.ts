@@ -69,10 +69,11 @@ export const api = {
   deleteAccount: async (password: string) => {
     await axios.delete(`${API}/me`, { data: { password } });
   },
-  submitAnalysis: async (video: File, calibration?: Calibration) => {
+  submitAnalysis: async (video: File, calibration?: Calibration, profileId?: number | null) => {
     const form = new FormData();
     form.append("video", video);
     for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
+    if (profileId != null) form.append("profile_id", String(profileId));
     return (await axios.post<JobQueued>(`${API}/analyses`, form)).data;
   },
   analysisStatus: async (jobId: string) => (await axios.get<JobStatus>(`${API}/analyses/${jobId}`)).data,
@@ -83,6 +84,12 @@ export const api = {
   inbox: async () => (await axios.get<S["Inbox"]>(`${API}/clinician/inbox`)).data,
   inboxSeen: async () => {
     await axios.post(`${API}/clinician/inbox/seen`);
+  },
+  profiles: async () => (await axios.get<S["ProfileOut"][]>(`${API}/profiles`)).data,
+  addProfile: async (body: S["ProfileIn"]) =>
+    (await axios.post<S["ProfileOut"]>(`${API}/profiles`, body)).data,
+  deleteProfile: async (id: number) => {
+    await axios.delete(`${API}/profiles/${id}`);
   },
   sessions: async () => (await axios.get<SessionOut[]>(`${API}/sessions`)).data,
   session: async (id: string) => (await axios.get<SessionDetail>(`${API}/sessions/${id}`)).data,

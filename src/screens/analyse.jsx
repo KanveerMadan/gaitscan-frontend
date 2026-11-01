@@ -4,6 +4,7 @@ import { ArrowLeft, BellSimple, DownloadSimple, UploadSimple } from "@phosphor-i
 import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
 import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
+import { useAuth } from "@/auth-context";
 import { Alert } from "@/components/ui/alert";
 import { WalkerCanvas } from "@/landing/walker-canvas";
 import { takeRecording } from "@/setup/record";
@@ -18,6 +19,8 @@ const STEPS = [
 ];
 
 export function AnalyseScreen() {
+  const profiles = useAuth()?.user?.profiles ?? [];
+  const [profileId, setProfileId] = useState(null); // null: the account holder
   const [stage, setStage] = useState("upload");
   const [dragOver, setDragOver] = useState(false);
   const [results, setResults] = useState(null);
@@ -59,7 +62,7 @@ export function AnalyseScreen() {
     setStage("processing");
     setProgress("Uploading video…");
     try {
-      const job = await api.submitAnalysis(file, calibration ?? undefined);
+      const job = await api.submitAnalysis(file, calibration ?? undefined, profileId);
       setProgress("Waiting for the analysis to start…");
       const done = await waitForAnalysis(job.job_id, (s) => {
         if (s.status === "running") setProgress("Finding the body in every frame and measuring the steps…");
@@ -191,6 +194,26 @@ export function AnalyseScreen() {
           </p>
         </div>
         {error && <Alert variant="destructive">{error}</Alert>}
+        {profiles.length > 0 && (
+          <div className="grid max-w-xs gap-2">
+            <label htmlFor="who-is-walking" className="text-sm font-medium">
+              Who is walking?
+            </label>
+            <select
+              id="who-is-walking"
+              className="h-10 rounded-md border border-input bg-surface px-3 text-sm"
+              value={profileId ?? ""}
+              onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">You</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <button
           type="button"
           onDragOver={(e) => {

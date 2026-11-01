@@ -72,6 +72,7 @@ function useFinish(onCodes) {
       name: res.full_name,
       recoveryCodesLeft: res.recovery_codes?.length ?? res.recovery_codes_left,
       settings: res.settings ?? null,
+      profiles: res.profiles ?? [],
     };
     if (res.recovery_codes && onCodes) onCodes(res.recovery_codes, () => login(session));
     else login(session);
