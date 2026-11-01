@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/KanveerMadan/gaitscan-frontend/security/advisories/new
+    about: Report privately. Please don't open a public issue.
+  - name: A problem with a measurement or the API
+    url: https://github.com/KanveerMadan/GaitScan/issues
+    about: The analysis runs in the backend; report measurement problems there.
