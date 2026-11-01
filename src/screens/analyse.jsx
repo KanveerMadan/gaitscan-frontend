@@ -5,6 +5,7 @@ import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client
 import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
 import { useAuth } from "@/auth-context";
+import { useT } from "@/i18n";
 import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { WalkerCanvas } from "@/landing/walker-canvas";
@@ -13,17 +14,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
 
-const STEPS = [
-  "Film from the side, phone held still in landscape at waist height",
-  "Keep the whole body in view, about 3-4 m away",
-  "Walk across the frame and back at your usual pace, 10-20 s",
-];
+const STEPS = ["analyse.step1", "analyse.step2", "analyse.step3"];
 
 // Treadmill belt speeds the backend accepts (app/api/analysis.py BELT_KMH_RANGE): walking, not running.
 const BELT_KMH = [0.5, 10];
 const KMH_PER_MPH = 1.609344;
 
 export function AnalyseScreen() {
+  const t = useT();
   const { user } = useAuth() ?? {};
   const profiles = user?.profiles ?? [];
   const imperial = user?.settings?.units === "imperial";
@@ -148,7 +146,7 @@ export function AnalyseScreen() {
   if (stage === "processing") {
     return (
       <div className="flex flex-col gap-3 py-16" role="status" aria-live="polite">
-        <h1 className="text-xl font-semibold tracking-tight">Analysing your video…</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t("analyse.analysing")}</h1>
         <p className="text-sm text-muted-foreground">{progress}</p>
         {canNotify && (
           <div>
@@ -190,11 +188,11 @@ export function AnalyseScreen() {
             }}
           >
             <ArrowLeft aria-hidden />
-            Analyse another video
+            {t("analyse.another")}
           </Button>
           <Button size="sm" onClick={() => downloadReport(results.job_id)}>
             <DownloadSimple aria-hidden />
-            Download PDF report
+            {t("analyse.pdf")}
           </Button>
         </div>
         <ResultHeadline result={results.result} />
@@ -209,18 +207,16 @@ export function AnalyseScreen() {
     <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_280px]">
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Upload a walking video</h1>
-          <p className="mt-1 max-w-[60ch] text-sm text-muted-foreground">
-            Videos that can't be measured are rejected with the reason, so you know what to change.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("analyse.title")}</h1>
+          <p className="mt-1 max-w-[60ch] text-sm text-muted-foreground">{t("analyse.intro")}</p>
         </div>
         {error && <Alert variant="destructive">{error}</Alert>}
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium">What are you filming?</legend>
+          <legend className="text-sm font-medium">{t("analyse.what")}</legend>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             {[
-              ["walk", "Walking across the floor"],
-              ["treadmill", "On a treadmill"],
+              ["walk", t("analyse.walk")],
+              ["treadmill", t("analyse.treadmill")],
             ].map(([value, label]) => (
               <label key={value} className="flex items-center gap-2">
                 <input
@@ -240,7 +236,7 @@ export function AnalyseScreen() {
           <div className="flex flex-col gap-2">
             <div className="grid max-w-xs gap-2">
               <label htmlFor="belt-speed" className="text-sm font-medium">
-                Belt speed ({imperial ? "mph" : "km/h"})
+                {t("analyse.belt", { unit: imperial ? "mph" : "km/h" })}
               </label>
               <Input
                 id="belt-speed"
@@ -249,16 +245,13 @@ export function AnalyseScreen() {
                 onChange={(e) => setBelt(e.target.value.replace(",", "."))}
               />
             </div>
-            <p className="max-w-[60ch] text-xs text-muted-foreground">
-              As the treadmill shows it. Treadmill results aren't validated yet and differ from walking over
-              the ground, so compare them only with your other treadmill tests.
-            </p>
+            <p className="max-w-[60ch] text-xs text-muted-foreground">{t("analyse.beltNote")}</p>
           </div>
         )}
         {profiles.length > 0 && (
           <div className="grid max-w-xs gap-2">
             <label htmlFor="who-is-walking" className="text-sm font-medium">
-              Who is walking?
+              {t("analyse.who")}
             </label>
             <select
               id="who-is-walking"
@@ -266,7 +259,7 @@ export function AnalyseScreen() {
               value={profileId ?? ""}
               onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : null)}
             >
-              <option value="">You</option>
+              <option value="">{t("analyse.you")}</option>
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -299,9 +292,9 @@ export function AnalyseScreen() {
           </span>
           <span className="flex items-center gap-2 text-base font-medium">
             <UploadSimple size={20} className="text-stage-accent" aria-hidden />
-            Drop your video here or choose a file
+            {t("analyse.drop")}
           </span>
-          <span className="text-xs text-stage-muted">.mp4, .mov or .avi, up to 100 MB</span>
+          <span className="text-xs text-stage-muted">{t("analyse.formats")}</span>
         </button>
         <input
           id="file-input"
@@ -318,24 +311,23 @@ export function AnalyseScreen() {
               checked={calibrate}
               onChange={(e) => setCalibrate(e.target.checked)}
             />
-            I marked two points on the floor a known distance apart (optional: adds step length and walking
-            speed)
+            {t("analyse.calibrate")}
           </label>
         )}
       </div>
       <aside className="self-start rounded-lg border bg-surface p-5">
-        <h2 className="text-sm font-semibold">How to record</h2>
+        <h2 className="text-sm font-semibold">{t("analyse.howTo")}</h2>
         <ol className="mt-3 flex list-decimal flex-col gap-2 pl-4 text-sm text-muted-foreground">
           {STEPS.map((s) => (
-            <li key={s}>{s}</li>
+            <li key={s}>{t(s)}</li>
           ))}
         </ol>
-        <p className="mt-3 text-xs text-muted-foreground">This side-on view is what the measurements need.</p>
+        <p className="mt-3 text-xs text-muted-foreground">{t("analyse.sideOn")}</p>
         <Button asChild variant="outline" size="sm" className="mt-4 w-full">
-          <Link to="/setup">Check your setup with the camera</Link>
+          <Link to="/setup">{t("analyse.checkSetup")}</Link>
         </Button>
         <Button asChild variant="link" size="sm" className="mt-1 w-full">
-          <Link to="/welcome">How it works</Link>
+          <Link to="/welcome">{t("analyse.howItWorks")}</Link>
         </Button>
       </aside>
     </div>

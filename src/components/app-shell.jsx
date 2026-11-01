@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RecoveryPrompt } from "@/components/recovery-codes";
 import { ChangePasswordForm } from "@/screens/account";
+import { useLanguage, useT } from "@/i18n";
 
-export const DISCLAIMER =
-  "GaitScan is an experimental measurement tool, not a medical device. It does not diagnose " +
-  "conditions or predict outcomes, and its measurements have not been clinically validated.";
+/** The not-a-medical-device statement, in the user's language. */
+export function DisclaimerText() {
+  return useT()("disclaimer");
+}
 
 export function Disclaimer() {
   return (
@@ -19,9 +21,16 @@ export function Disclaimer() {
       role="note"
       className="border-b bg-muted px-4 py-2 text-center text-xs leading-relaxed text-muted-foreground"
     >
-      {DISCLAIMER}
+      <DisclaimerText />
     </div>
   );
+}
+
+// While Hindi is chosen: its text is an unreviewed draft, and some text is still English.
+function DraftNote() {
+  const t = useT();
+  if (useLanguage() !== "hi") return null;
+  return <p className="border-b px-4 py-1.5 text-center text-xs text-muted-foreground">{t("i18n.draft")}</p>;
 }
 
 export function Brand() {
@@ -33,12 +42,14 @@ export function Brand() {
   );
 }
 
-// sections: [{ to, label, icon, end }], rendered as links (the router marks the current one).
+// sections: [{ to, label, icon, end }] with label an i18n key, rendered as links (the router marks the
+// current one).
 export function AppShell({ sections, children }) {
+  const t = useT();
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const role = user?.role === "clinician" ? "Clinician" : "Patient";
+  const role = t(user?.role === "clinician" ? "shell.clinician" : "shell.patient");
 
   return (
     <div className="min-h-[100dvh] bg-background">
@@ -46,7 +57,7 @@ export function AppShell({ sections, children }) {
         href="#main"
         className="sr-only rounded-md bg-surface px-3 py-2 text-sm focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-10"
       >
-        Skip to content
+        {t("shell.skip")}
       </a>
       <header className="border-b bg-surface">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:h-16 sm:flex-nowrap sm:py-0">
@@ -78,7 +89,7 @@ export function AppShell({ sections, children }) {
                         className="hidden shrink-0 sm:block"
                       />
                     )}
-                    {label}
+                    {t(label)}
                   </>
                 )}
               </NavLink>
@@ -96,13 +107,13 @@ export function AppShell({ sections, children }) {
               aria-expanded={showPassword}
             >
               <Key aria-hidden />
-              <span className="hidden md:inline">Change password</span>
-              <span className="sr-only md:hidden">Change password</span>
+              <span className="hidden md:inline">{t("shell.changePassword")}</span>
+              <span className="sr-only md:hidden">{t("shell.changePassword")}</span>
             </Button>
             <Button variant="ghost" size="sm" onClick={logout}>
               <SignOut aria-hidden />
-              <span className="hidden md:inline">Sign out</span>
-              <span className="sr-only md:hidden">Sign out</span>
+              <span className="hidden md:inline">{t("shell.signOut")}</span>
+              <span className="sr-only md:hidden">{t("shell.signOut")}</span>
             </Button>
           </div>
         </div>
@@ -116,6 +127,7 @@ export function AppShell({ sections, children }) {
       </header>
       <RecoveryPrompt />
       <Disclaimer />
+      <DraftNote />
       <main id="main" key={pathname} className="page-enter mx-auto max-w-5xl px-4 py-8">
         {children}
       </main>

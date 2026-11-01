@@ -34,16 +34,16 @@ function Loading() {
 }
 
 const PATIENT_SECTIONS = [
-  { to: "/", label: "Analyse", icon: VideoCamera, end: true },
-  { to: "/history", label: "History", icon: ChartLineUp },
-  { to: "/privacy", label: "Privacy", icon: ShieldCheck },
-  { to: "/settings", label: "Settings", icon: GearSix },
+  { to: "/", label: "nav.analyse", icon: VideoCamera, end: true },
+  { to: "/history", label: "nav.history", icon: ChartLineUp },
+  { to: "/privacy", label: "nav.privacy", icon: ShieldCheck },
+  { to: "/settings", label: "nav.settings", icon: GearSix },
 ];
 const CLINICIAN_SECTIONS = [
-  { to: "/inbox", label: "Inbox", icon: Tray },
-  { to: "/patients", label: "Patients", icon: Stethoscope },
-  { to: "/privacy", label: "Privacy", icon: ShieldCheck },
-  { to: "/settings", label: "Settings", icon: GearSix },
+  { to: "/inbox", label: "nav.inbox", icon: Tray },
+  { to: "/patients", label: "nav.patients", icon: Stethoscope },
+  { to: "/privacy", label: "nav.privacy", icon: ShieldCheck },
+  { to: "/settings", label: "nav.settings", icon: GearSix },
 ];
 
 function MainApp() {

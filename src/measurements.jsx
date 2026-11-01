@@ -5,23 +5,25 @@ import { useAuth } from "@/auth-context";
 import { Info, Warning } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { isTreadmill } from "@/lib/results";
+import { useT } from "@/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+// [metric, i18n key of its label, /learn page]
 const ROWS = [
-  ["cadence", "Cadence", "cadence"],
-  ["step_time", "Step time", "step-time"],
-  ["peak_knee_flexion", "Peak knee bend (per stride)", "peak-knee-flexion"],
-  ["step_length", "Step length", "step-length"],
-  ["walking_speed", "Walking speed", "walking-speed"],
+  ["cadence", "metric.cadence", "cadence"],
+  ["step_time", "metric.stepTime", "step-time"],
+  ["peak_knee_flexion", "metric.knee", "peak-knee-flexion"],
+  ["step_length", "metric.stepLength", "step-length"],
+  ["walking_speed", "metric.speed", "walking-speed"],
 ];
 // A treadmill test (backend gaitcore pipeline): the belt speed is entered, and step length comes from it.
 const TREADMILL_ROWS = [
-  ["cadence", "Cadence", "cadence"],
-  ["step_time", "Step time", "step-time"],
-  ["peak_knee_flexion", "Peak knee bend (per stride)", "peak-knee-flexion"],
-  ["belt_speed", "Belt speed (entered)", null],
-  ["step_length", "Step length (from the belt speed)", "step-length"],
+  ["cadence", "metric.cadence", "cadence"],
+  ["step_time", "metric.stepTime", "step-time"],
+  ["peak_knee_flexion", "metric.knee", "peak-knee-flexion"],
+  ["belt_speed", "metric.belt", null],
+  ["step_length", "metric.stepLengthBelt", "step-length"],
 ];
 
 // No reference check yet (backend gaitcore/accuracy.py): knee angles until Phase 8, calibrated
@@ -50,7 +52,7 @@ function useUnits() {
   return useAuth()?.user?.settings?.units ?? "metric";
 }
 
-function accuracyText(result, key) {
+function accuracyText(result, key, t) {
   const a = result?.accuracy?.[key];
   if (a?.status === "validated")
     return <span className="tabular">{`± ${a.error_95}${UNIT[a.unit] ?? ` ${a.unit}`}`}</span>;
@@ -58,7 +60,7 @@ function accuracyText(result, key) {
     return (
       <Badge variant="warning">
         <Warning aria-hidden />
-        Not yet validated
+        {t("results.notValidated")}
       </Badge>
     );
   return <span className="text-muted-foreground">-</span>;
@@ -134,22 +136,23 @@ export function ResultHeadline({ result }) {
 }
 
 export function MeasurementTable({ result }) {
+  const t = useT();
   const m = result?.metrics ?? {};
   const treadmill = isTreadmill(result);
   return (
     <Card aria-label="Measurements" role="region">
       <CardHeader>
-        <CardTitle>Measurements</CardTitle>
+        <CardTitle>{t("results.measurements")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Measurement</TableHead>
-              <TableHead>Left leg</TableHead>
-              <TableHead>Right leg</TableHead>
-              <TableHead>Both legs</TableHead>
-              <TableHead>Error range</TableHead>
+              <TableHead>{t("results.measurement")}</TableHead>
+              <TableHead>{t("results.left")}</TableHead>
+              <TableHead>{t("results.right")}</TableHead>
+              <TableHead>{t("results.both")}</TableHead>
+              <TableHead>{t("results.errorRange")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -163,16 +166,16 @@ export function MeasurementTable({ result }) {
                     <TableCell className="font-medium">
                       {slug ? (
                         <Link to={`/learn/${slug}`} className="underline-offset-4 hover:underline">
-                          {label}
+                          {t(label)}
                         </Link>
                       ) : (
-                        label
+                        t(label)
                       )}
                     </TableCell>
                     <TableCell>{perLeg && <Value item={item.left} />}</TableCell>
                     <TableCell>{perLeg && <Value item={item.right} />}</TableCell>
                     <TableCell>{!perLeg && <Value item={item} />}</TableCell>
-                    <TableCell>{accuracyText(result, key)}</TableCell>
+                    <TableCell>{accuracyText(result, key, t)}</TableCell>
                   </TableRow>
                 );
               })}

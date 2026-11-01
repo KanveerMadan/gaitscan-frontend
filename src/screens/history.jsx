@@ -13,6 +13,7 @@ import { nextTestDue } from "@/lib/reminders";
 import { ReminderButton } from "@/screens/settings";
 import { SessionSummary } from "@/measurements";
 import { isTreadmill } from "@/lib/results";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { EmptyState, LoadError } from "@/components/states";
 import { ListSkeleton } from "@/components/ui/skeleton";
@@ -228,6 +229,7 @@ function JoinClinicianCard() {
 }
 
 export function HistoryScreen() {
+  const t = useT();
   const { user } = useAuth();
   const [allSessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true); // no "no sessions yet" flash before the first load
@@ -272,16 +274,16 @@ export function HistoryScreen() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Your walking</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("history.title")}</h1>
         <Button variant="outline" size="sm" onClick={fetchHistory}>
           <ArrowClockwise aria-hidden />
-          Refresh
+          {t("history.refresh")}
         </Button>
       </div>
       {profiles.length > 0 && (
         <div className="grid max-w-xs gap-2">
           <label htmlFor="whose-walking" className="text-sm font-medium">
-            Whose walking
+            {t("history.whose")}
           </label>
           <select
             id="whose-walking"
@@ -292,7 +294,7 @@ export function HistoryScreen() {
               setSelected([]);
             }}
           >
-            <option value="">You</option>
+            <option value="">{t("analyse.you")}</option>
             {profiles.map((p) => (
               <option key={p.id} value={String(p.id)}>
                 {p.name}
@@ -315,17 +317,15 @@ export function HistoryScreen() {
       {!loading && sessions.length > 0 && (
         <section className="flex flex-col gap-3" aria-label="Sessions">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">Sessions</h2>
+            <h2 className="text-base font-semibold">{t("history.sessions")}</h2>
             <Button asChild={canCompare} size="sm" variant="outline" disabled={!canCompare}>
               {canCompare ? (
                 <Link to={`/compare/${selected[0]}/${selected[1]}`}>
                   <ArrowsLeftRight aria-hidden />
-                  Compare selected
+                  {t("history.compare")}
                 </Link>
               ) : (
-                <span className={cn(!canCompare && "text-muted-foreground")}>
-                  Select two sessions to compare
-                </span>
+                <span className={cn(!canCompare && "text-muted-foreground")}>{t("history.selectTwo")}</span>
               )}
             </Button>
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarPlus, Trash, UserPlus } from "@phosphor-icons/react";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
+import { useT } from "@/i18n";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +106,7 @@ const ADULT_AGE = 18;
 // Other adults on the account (backend app/api/profiles.py). Adults only: the year is self-declared
 // and checked here and again on the server. Removing someone removes their sessions too.
 function PeopleCard() {
+  const t = useT();
   const { user, login } = useAuth();
   const [people, setPeople] = useState(null);
   const [name, setName] = useState("");
@@ -156,7 +158,7 @@ function PeopleCard() {
   return (
     <Card role="region" aria-label="People you measure">
       <CardHeader>
-        <CardTitle>People you measure</CardTitle>
+        <CardTitle>{t("settings.people")}</CardTitle>
         <CardDescription>
           Measure another adult, such as a partner or a parent, on this account. Their walking is kept apart
           from yours, and clinicians you link with see only yours.
@@ -232,6 +234,7 @@ function PeopleCard() {
 }
 
 export function SettingsScreen() {
+  const t = useT();
   const { user, login } = useAuth();
   const [settings, setSettings] = useState(user?.settings ?? null);
   const [error, setError] = useState(null);
@@ -258,13 +261,13 @@ export function SettingsScreen() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
       {error && <Alert variant="destructive">{error}</Alert>}
       {settings && (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Re-test reminders</CardTitle>
+              <CardTitle>{t("settings.reminders")}</CardTitle>
               <CardDescription>
                 Measuring the same way at regular intervals is how changes show up. GaitScan sends no email:
                 add the reminder to your own calendar.
@@ -303,28 +306,39 @@ export function SettingsScreen() {
           <PeopleCard />
           <Card>
             <CardHeader>
-              <CardTitle>Display</CardTitle>
+              <CardTitle>{t("settings.display")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
               <Choice
                 name="theme"
-                label="Theme"
+                label={t("settings.theme")}
                 value={settings.theme}
                 onChange={(theme) => save({ theme })}
                 options={[
-                  ["system", "System"],
-                  ["light", "Light"],
-                  ["dark", "Dark"],
+                  ["system", t("settings.themeSystem")],
+                  ["light", t("settings.themeLight")],
+                  ["dark", t("settings.themeDark")],
                 ]}
               />
               <Choice
                 name="units"
-                label="Distances and speed"
+                label={t("settings.units")}
                 value={settings.units}
                 onChange={(units) => save({ units })}
                 options={[
-                  ["metric", "Metres"],
-                  ["imperial", "Feet and mph"],
+                  ["metric", t("settings.metric")],
+                  ["imperial", t("settings.imperial")],
+                ]}
+              />
+              <Choice
+                name="language"
+                label={t("settings.language")}
+                value={settings.language}
+                onChange={(language) => save({ language })}
+                options={[
+                  // Each language in its own script, so it can be found whatever is shown now.
+                  ["en", "English"],
+                  ["hi", "हिन्दी"],
                 ]}
               />
             </CardContent>
