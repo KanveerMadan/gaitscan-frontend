@@ -81,9 +81,11 @@ export const api = {
     for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
     if (profileId != null) form.append("profile_id", String(profileId));
     for (const [k, v] of Object.entries(fields)) form.append(k, v);
-    return (await axios.post<JobQueued>(`${API}/analyses`, form)).data;
+    return (await axios.post<JobQueued>(`${API}/analyses`, form, { timeout: polling.uploadTimeoutMs })).data;
   },
-  analysisStatus: async (jobId: string) => (await axios.get<JobStatus>(`${API}/analyses/${jobId}`)).data,
+  analysisStatus: async (jobId: string, signal?: AbortSignal) =>
+    (await axios.get<JobStatus>(`${API}/analyses/${jobId}`, { timeout: polling.requestTimeoutMs, signal }))
+      .data,
   comments: async (sessionId: string) =>
     (await axios.get<S["CommentOut"][]>(`${API}/sessions/${sessionId}/comments`)).data,
   addComment: async (sessionId: string, body: string) =>
@@ -111,19 +113,99 @@ export const api = {
 };
 
 const TERMINAL = new Set(["done", "rejected", "failed"]);
-export const polling = { intervalMs: 1500 }; // tests shorten it
+// How long to wait (tests shorten these). A status check that hasn't answered in requestTimeoutMs is
+// abandoned. Failed checks (no answer, or 502-504 while Render restarts the server after a deploy or
+// running out of memory) are retried for retryForMs; the restarted server then reports the job as
+// failed. deadlineMs bounds the whole wait, so the app never shows "Analysing…" forever
+// (2026-11-12). Uploads get uploadTimeoutMs: a 100 MB video on a slow phone connection takes minutes.
+export const polling = {
+  intervalMs: 1500,
+  requestTimeoutMs: 20_000,
+  retryForMs: 120_000,
+  deadlineMs: 15 * 60_000,
+  uploadTimeoutMs: 10 * 60_000,
+};
 
-// Poll a queued analysis until it finishes: at once, then every `intervalMs`.
+export const LOST_CONTACT =
+  "We lost contact with the server while your video was being analysed. If the analysis finishes, it " +
+  "will be in your History; if it isn't there in a few minutes, please upload the video again.";
+export const TOO_LONG =
+  "This analysis is taking much longer than it should, so we've stopped waiting. If it finishes, it " +
+  "will be in your History; if it isn't, please upload the video again.";
+
+/** Why waitForAnalysis stopped without an outcome: "lost_contact", "too_long" or "cancelled". */
+export class AnalysisWaitError extends Error {
+  reason: "lost_contact" | "too_long" | "cancelled";
+  constructor(reason: AnalysisWaitError["reason"], message = "") {
+    super(message);
+    this.reason = reason;
+  }
+}
+
+// A request that may succeed if tried again: no answer at all, or the proxy saying the server is down.
+function transient(err: unknown): boolean {
+  const status = (err as AxiosError)?.response?.status;
+  return status === undefined || status === 502 || status === 503 || status === 504;
+}
+
+// axios's own timeout, plus a timer of ours: a request can also hang where axios doesn't see it.
+function statusWithin(jobId: string, signal?: AbortSignal): Promise<JobStatus> {
+  const ctrl = new AbortController();
+  const stop = () => ctrl.abort();
+  signal?.addEventListener("abort", stop, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      ctrl.abort();
+      reject(Object.assign(new Error("status check timed out"), { code: "ECONNABORTED" }));
+    }, polling.requestTimeoutMs);
+  });
+  return Promise.race([api.analysisStatus(jobId, ctrl.signal), timeout]).finally(() => {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", stop);
+  });
+}
+
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
+  });
+}
+
+// Poll a queued analysis until it finishes: at once, then every `intervalMs`. Throws AnalysisWaitError
+// when it gives up (see `polling`) or `signal` aborts, and the request's own error for anything a retry
+// won't fix (401, 404, 500).
 export async function waitForAnalysis(
   jobId: string,
   onStatus: (s: JobStatus) => void = () => {},
-  intervalMs = polling.intervalMs,
+  signal?: AbortSignal,
 ): Promise<JobStatus> {
+  const deadline = Date.now() + polling.deadlineMs;
+  let failingSince: number | null = null;
   for (;;) {
-    const status = await api.analysisStatus(jobId);
-    onStatus(status);
-    if (TERMINAL.has(status.status)) return status;
-    await new Promise((r) => setTimeout(r, intervalMs));
+    if (signal?.aborted) throw new AnalysisWaitError("cancelled");
+    try {
+      const status = await statusWithin(jobId, signal);
+      failingSince = null;
+      onStatus(status);
+      if (TERMINAL.has(status.status)) return status;
+    } catch (err) {
+      if (signal?.aborted) throw new AnalysisWaitError("cancelled");
+      if (!transient(err)) throw err;
+      failingSince ??= Date.now();
+      if (Date.now() - failingSince >= polling.retryForMs)
+        throw new AnalysisWaitError("lost_contact", LOST_CONTACT);
+    }
+    if (Date.now() >= deadline) throw new AnalysisWaitError("too_long", TOO_LONG);
+    await pause(polling.intervalMs, signal);
   }
 }
 

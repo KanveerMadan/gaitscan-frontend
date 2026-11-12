@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { ChartLineUp, GearSix, ShieldCheck, Stethoscope, Tray, VideoCamera } from "@phosphor-icons/react";
 import { AuthProvider } from "@/auth";
 import { useAuth } from "@/auth-context";
+import { AnalysisNote, AnalysisProvider } from "@/analysis-job";
 import { AppShell } from "@/components/app-shell";
 import { AnalyseScreen } from "@/screens/analyse";
 import { AuthGate } from "@/screens/auth";
@@ -64,8 +65,18 @@ function MainApp() {
       </AppShell>
     );
   }
+  // The analysis in progress lives here, above the pages, so it carries on while you move around.
+  return (
+    <AnalysisProvider>
+      <PatientApp />
+    </AnalysisProvider>
+  );
+}
+
+function PatientApp() {
   return (
     <AppShell sections={PATIENT_SECTIONS}>
+      <AnalysisNote />
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/" element={<AnalyseScreen />} />
