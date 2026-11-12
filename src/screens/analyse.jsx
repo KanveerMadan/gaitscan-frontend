@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, BellSimple, DownloadSimple, UploadSimple } from "@phosphor-icons/react";
-import { api, downloadReport, errorMessage, waitForAnalysis } from "@/api/client";
+import { downloadReport } from "@/api/client";
+import { useAnalysis } from "@/analysis-context";
 import { CalibrationStep } from "@/calibration";
 import { ConsentCard } from "@/components/consent-card";
 import { useAuth } from "@/auth-context";
@@ -28,26 +29,21 @@ export function AnalyseScreen() {
   const [testType, setTestType] = useState("walk"); // "walk" | "treadmill"
   const [belt, setBelt] = useState(""); // as typed, in km/h or mph (Settings units)
   const [profileId, setProfileId] = useState(null); // null: the account holder
-  const [stage, setStage] = useState("upload");
   const [dragOver, setDragOver] = useState(false);
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
-  const [progress, setProgress] = useState("");
   const [calibrate, setCalibrate] = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
-  const [needsConsent, setNeedsConsent] = useState(null); // { file, calibration } waiting for consent
-  // "Analysis done" notification: asked for only when the user clicks, shown only if the tab is hidden.
-  const [notifying, setNotifying] = useState(false);
-  const notifyRef = useRef(false);
+  const [pendingFile, setPendingFile] = useState(null); // a video waiting for its floor points
+  // The upload and its analysis live above this page (src/analysis-job.jsx), so they carry on when
+  // you open another page, and are here again when you come back.
+  const job = useAnalysis();
+  const { stage, results, error, progress, needsConsent, notifying, askToNotify, watch } = job;
+  useEffect(watch, [watch]);
+  // "Analysis done" notification: asked for only when the user clicks, shown if the tab is hidden
+  // or you're on another page.
   const canNotify = typeof Notification !== "undefined" && Notification.permission !== "denied";
-  const askToNotify = async () => {
-    const answer = await Notification.requestPermission();
-    notifyRef.current = answer === "granted";
-    setNotifying(notifyRef.current);
-  };
-  const notifyDone = (text) => {
-    if (notifyRef.current && document.hidden && Notification.permission === "granted")
-      new Notification("GaitScan", { body: text });
+  const setError = job.showError;
+  const analyse = (file, calibration = null, fields = {}) => {
+    setPendingFile(null);
+    job.start(file, calibration, fields, profileId);
   };
 
   const handleFile = (file) => {
@@ -71,39 +67,9 @@ export function AnalyseScreen() {
     }
     if (calibrate) {
       setPendingFile(file);
-      setStage("calibrate");
       return;
     }
     analyse(file);
-  };
-
-  const analyse = async (file, calibration = null, fields = {}) => {
-    setStage("processing");
-    setProgress("Uploading video…");
-    try {
-      const job = await api.submitAnalysis(file, calibration ?? undefined, profileId, fields);
-      setProgress("Waiting for the analysis to start…");
-      const done = await waitForAnalysis(job.job_id, (s) => {
-        if (s.status === "running") setProgress("Finding the body in every frame and measuring the steps…");
-      });
-      notifyDone(
-        done.status === "done" ? "Your walk has been measured." : "Your video couldn't be measured: see why.",
-      );
-      if (done.status === "done" && done.analysis) {
-        setResults(done.analysis);
-        setStage("results");
-        return;
-      }
-      setError(done.rejection?.message || done.error || "Analysis failed. Please try again.");
-    } catch (err) {
-      if (err?.response?.status === 403 && err.response.data?.detail?.code === "consent_required") {
-        setNeedsConsent({ file, calibration });
-        setStage("consent");
-        return;
-      }
-      setError(errorMessage(err, "Analysis failed. Please try again."));
-    }
-    setStage("upload");
   };
 
   // A recording made on the setup screen starts its analysis as soon as this screen opens.
@@ -118,27 +84,20 @@ export function AnalyseScreen() {
     return (
       <ConsentCard
         onAccepted={() => {
-          const { file, calibration } = needsConsent;
-          setNeedsConsent(null);
-          analyse(file, calibration);
+          const { file, calibration, fields, profileId: who } = needsConsent;
+          job.start(file, calibration, fields, who);
         }}
-        onCancel={() => {
-          setNeedsConsent(null);
-          setStage("upload");
-        }}
+        onCancel={job.reset}
       />
     );
   }
 
-  if (stage === "calibrate" && pendingFile) {
+  if (stage === "upload" && pendingFile) {
     return (
       <CalibrationStep
         file={pendingFile}
         onAnalyse={(calibration) => analyse(pendingFile, calibration)}
-        onCancel={() => {
-          setPendingFile(null);
-          setStage("upload");
-        }}
+        onCancel={() => setPendingFile(null)}
       />
     );
   }
@@ -152,7 +111,8 @@ export function AnalyseScreen() {
           <div>
             {notifying ? (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <BellSimple aria-hidden /> We'll let you know when it's done, if you switch to another tab.
+                <BellSimple aria-hidden /> We'll let you know when it's done, even if you leave this page. You
+                can use the rest of GaitScan meanwhile.
               </p>
             ) : (
               <Button variant="outline" size="sm" onClick={askToNotify}>
@@ -179,14 +139,7 @@ export function AnalyseScreen() {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setStage("upload");
-              setResults(null);
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={job.reset}>
             <ArrowLeft aria-hidden />
             {t("analyse.another")}
           </Button>
