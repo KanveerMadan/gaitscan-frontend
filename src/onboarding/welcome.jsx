@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { ArrowRight } from "@phosphor-icons/react";
-import { Brand, Disclaimer, DISCLAIMER } from "@/components/app-shell";
+import { Brand, Disclaimer, DisclaimerText } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,9 @@ function Measures() {
           time, with the error range found when it was checked against a public walking dataset. It also shows
           how far each knee bends, marked as not yet validated.
         </p>
-        <p className="text-muted-foreground">{DISCLAIMER}</p>
+        <p className="text-muted-foreground">
+          <DisclaimerText />
+        </p>
       </CardContent>
     </Card>
   );

@@ -56,6 +56,8 @@ async function mockApi(page: Page) {
     if (url.pathname === `/sessions/${SESSION}`)
       return json({ ...SESSION_OUT, disclaimer: "not a medical device" });
     if (url.pathname === `/sessions/${SESSION}/shares`) return json([]);
+    if (url.pathname === "/me/settings")
+      return json({ retest_weeks: 4, units: "metric", language: "en", theme: "system" });
     if (url.pathname === "/consent")
       return json({
         accepted_at: "2026-10-20T09:00:00Z",
@@ -81,6 +83,7 @@ const SCREENS: [string, RegExp][] = [
   ["/history", /your walking/i],
   [`/sessions/${SESSION}`, /measurements/i],
   ["/privacy", /privacy/i],
+  ["/settings", /settings/i],
 ];
 
 async function noSidewaysScroll(page: Page) {

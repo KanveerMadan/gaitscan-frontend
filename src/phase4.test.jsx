@@ -100,7 +100,7 @@ test("the dashboard shows the latest results and when the last test was", async 
   const latest = await screen.findByRole("region", { name: /latest/i });
   expect(latest.textContent).toMatch(/116 steps\/min/);
   expect(latest.textContent).toMatch(/20 Oct 2026/);
-  expect(screen.getByText("new shoes")).toBeInTheDocument();
+  expect(within(screen.getByRole("list", { name: "Sessions" })).getByText("new shoes")).toBeInTheDocument();
 });
 
 test("a session's page lets the owner add notes and tags", async () => {

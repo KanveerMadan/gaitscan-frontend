@@ -1,14 +1,16 @@
-// "Check your setup": the camera preview with live framing checks, before recording with the phone's
-// camera app. Nothing is recorded or uploaded here. (Recording in the browser is not offered yet: its
-// frame timing has to be checked on real phones first.)
+// "Check your setup": the camera preview with live framing checks, then (where the browser can record
+// MP4) recording in the browser. The recording is reviewed, then analysed like an uploaded video.
+// Recording in the browser hasn't been checked on phones yet (its frame timing matters for cadence),
+// and the screen says so.
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
-import { ArrowLeft, Camera, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { Link, useNavigate } from "react-router";
+import { ArrowLeft, Camera, CheckCircle, Record, Stop, XCircle } from "@phosphor-icons/react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { framingChecks } from "@/setup/framing";
 import { createPoseLandmarker, ModelMismatch } from "@/setup/pose";
+import { handOver, MAX_RECORDING_S, recordingType } from "@/setup/record";
 
 function cameraError(e) {
   if (e?.name === "NotAllowedError")
@@ -26,8 +28,16 @@ export function SetupScreen() {
   const [state, setState] = useState("idle"); // idle | starting | running | error
   const [error, setError] = useState(null);
   const [checks, setChecks] = useState([]);
+  const navigate = useNavigate();
+  const recorder = useRef(null);
+  const timer = useRef(0);
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [recorded, setRecorded] = useState(null); // { file, url }
+  const type = recordingType();
 
   const stop = () => {
+    clearInterval(timer.current);
     cancelAnimationFrame(frame.current);
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = null;
@@ -65,6 +75,38 @@ export function SetupScreen() {
     }
   };
 
+  const record = () => {
+    const chunks = [];
+    const r = new MediaRecorder(stream.current, { mimeType: type });
+    r.ondataavailable = (e) => e.data?.size !== 0 && chunks.push(e.data);
+    r.onstop = () => {
+      const file = new File(chunks, "recording.mp4", { type: "video/mp4" });
+      stop();
+      setState("idle");
+      setRecording(false);
+      setRecorded({ file, url: URL.createObjectURL(file) });
+    };
+    recorder.current = r;
+    r.start();
+    setRecording(true);
+    setSeconds(0);
+    const began = Date.now();
+    timer.current = setInterval(() => {
+      const s = Math.floor((Date.now() - began) / 1000);
+      setSeconds(s);
+      if (s >= MAX_RECORDING_S) recorder.current?.stop();
+    }, 250);
+  };
+  const finish = () => recorder.current?.state === "recording" && recorder.current.stop();
+  const discard = () => {
+    if (recorded) URL.revokeObjectURL(recorded.url);
+    setRecorded(null);
+  };
+  const analyseRecording = () => {
+    handOver(recorded.file);
+    navigate("/");
+  };
+
   const allOk = checks.length === 5 && checks.every((c) => c.ok);
   return (
     <div className="flex flex-col gap-4">
@@ -98,12 +140,52 @@ export function SetupScreen() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {state !== "running" && (
+            {recorded && (
+              <div className="flex flex-col gap-2">
+                <video
+                  src={recorded.url}
+                  controls
+                  playsInline
+                  className="aspect-video w-full rounded-md bg-foreground"
+                />
+                <Button onClick={analyseRecording}>Analyse this recording</Button>
+                <Button variant="outline" onClick={discard}>
+                  Discard
+                </Button>
+              </div>
+            )}
+            {!recorded && state !== "running" && (
               <Button onClick={start} disabled={state === "starting"}>
                 <Camera aria-hidden />
                 {state === "starting" ? "Starting…" : "Start camera"}
               </Button>
             )}
+            {state === "running" &&
+              (type ? (
+                <div className="flex flex-col gap-2">
+                  {recording ? (
+                    <Button variant="destructive" onClick={finish}>
+                      <Stop aria-hidden />
+                      Stop ({seconds} s of {MAX_RECORDING_S})
+                    </Button>
+                  ) : (
+                    <Button onClick={record}>
+                      <Record aria-hidden />
+                      Record
+                    </Button>
+                  )}
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Walk across the frame and back, 10 to 20 seconds. Recording in the browser is new and
+                    hasn't been checked on phones yet: if a result looks wrong, film with your camera app
+                    instead.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  This browser can't record a video GaitScan can measure (MP4). When every check is green,
+                  film with your camera app and upload the video.
+                </p>
+              ))}
             <ul className="flex flex-col gap-2" aria-live="polite">
               {checks.map((c) => (
                 <li key={c.id} className="flex gap-2 text-sm">

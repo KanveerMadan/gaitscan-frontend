@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { languageOf } from "@/i18n";
 import { AuthContext } from "@/auth-context";
 
 // Set synchronously (not in an effect) so child components' first requests carry the token.
@@ -38,6 +39,19 @@ export function AuthProvider({ children }) {
     setExpired(sessionExpired === true);
     setUser(null);
   };
+
+  // The theme setting (light / dark / follow the system) on <html>, as src/index.css expects.
+  const theme = user?.settings?.theme ?? "system";
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    if (theme !== "system") root.classList.add(theme);
+  }, [theme]);
+  // The language setting on <html lang>, for screen readers, fonts and hyphenation.
+  const language = languageOf(user);
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   // Tokens expire (12 h); any 401 returns the user to the sign-in screen.
   useEffect(() => {

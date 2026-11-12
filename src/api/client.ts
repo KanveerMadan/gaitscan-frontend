@@ -15,6 +15,7 @@ export type PatientSummary = S["PatientSummary"];
 export type PatientSessions = S["PatientSessions"];
 export type TokenResponse = S["TokenResponse"];
 export type SignupResponse = S["SignupResponse"];
+export type Settings = S["Settings"];
 export type ConsentStatus = S["ConsentStatus"];
 export type ShareOut = S["ShareOut"];
 export type ShareCreated = S["ShareCreated"];
@@ -30,6 +31,8 @@ export const api = {
   login: async (body: S["LoginRequest"]) => (await axios.post<TokenResponse>(`${API}/auth/login`, body)).data,
   register: async (body: S["RegisterRequest"]) =>
     (await axios.post<SignupResponse>(`${API}/auth/register`, body)).data,
+  googleSignIn: async (credential: string) =>
+    (await axios.post<SignupResponse | TokenResponse>(`${API}/auth/google`, { credential })).data,
   recover: async (body: S["RecoverRequest"]) =>
     (await axios.post<{ message: string }>(`${API}/auth/recover`, body)).data,
   makeRecoveryCodes: async (password: string) =>
@@ -44,6 +47,9 @@ export const api = {
       .data,
   verifyEmail: async (token: string) =>
     (await axios.post<{ message: string }>(`${API}/auth/verify-email`, { token })).data,
+  settings: async () => (await axios.get<Settings>(`${API}/me/settings`)).data,
+  updateSettings: async (body: S["SettingsUpdate"]) =>
+    (await axios.patch<Settings>(`${API}/me/settings`, body)).data,
   consent: async () => (await axios.get<ConsentStatus>(`${API}/consent`)).data,
   acceptConsent: async (version: string) =>
     (await axios.post<ConsentStatus>(`${API}/consent`, { version })).data,
@@ -63,13 +69,35 @@ export const api = {
   deleteAccount: async (password: string) => {
     await axios.delete(`${API}/me`, { data: { password } });
   },
-  submitAnalysis: async (video: File, calibration?: Calibration) => {
+  // `fields`: other form fields, e.g. { test: "treadmill", belt_speed_kmh: "4.5" }.
+  submitAnalysis: async (
+    video: File,
+    calibration?: Calibration,
+    profileId?: number | null,
+    fields: Record<string, string> = {},
+  ) => {
     const form = new FormData();
     form.append("video", video);
     for (const [k, v] of Object.entries(calibration ?? {})) form.append(k, String(v));
+    if (profileId != null) form.append("profile_id", String(profileId));
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
     return (await axios.post<JobQueued>(`${API}/analyses`, form)).data;
   },
   analysisStatus: async (jobId: string) => (await axios.get<JobStatus>(`${API}/analyses/${jobId}`)).data,
+  comments: async (sessionId: string) =>
+    (await axios.get<S["CommentOut"][]>(`${API}/sessions/${sessionId}/comments`)).data,
+  addComment: async (sessionId: string, body: string) =>
+    (await axios.post<S["CommentOut"]>(`${API}/sessions/${sessionId}/comments`, { body })).data,
+  inbox: async () => (await axios.get<S["Inbox"]>(`${API}/clinician/inbox`)).data,
+  inboxSeen: async () => {
+    await axios.post(`${API}/clinician/inbox/seen`);
+  },
+  profiles: async () => (await axios.get<S["ProfileOut"][]>(`${API}/profiles`)).data,
+  addProfile: async (body: S["ProfileIn"]) =>
+    (await axios.post<S["ProfileOut"]>(`${API}/profiles`, body)).data,
+  deleteProfile: async (id: number) => {
+    await axios.delete(`${API}/profiles/${id}`);
+  },
   sessions: async () => (await axios.get<SessionOut[]>(`${API}/sessions`)).data,
   session: async (id: string) => (await axios.get<SessionDetail>(`${API}/sessions/${id}`)).data,
   labelSession: async (id: string, body: S["SessionLabels"]) =>

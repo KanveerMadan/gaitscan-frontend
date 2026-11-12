@@ -1,5 +1,11 @@
 # GaitScan — Frontend
 
+[![CI](https://github.com/KanveerMadan/gaitscan-frontend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/KanveerMadan/gaitscan-frontend/actions/workflows/ci.yml)
+![React 19](https://img.shields.io/badge/react-19-149eca)
+![Vite 8](https://img.shields.io/badge/vite-8-646cff)
+![Accessibility: axe WCAG 2.1 AA](https://img.shields.io/badge/axe-WCAG%202.1%20AA-2e7d32)
+![Status: experimental](https://img.shields.io/badge/status-experimental-orange)
+
 The web app for GaitScan: film yourself walking side-on, and get your cadence and step time with
 their error ranges. The API and the measurement pipeline are in the
 [backend repository](https://github.com/KanveerMadan/GaitScan).
@@ -12,7 +18,9 @@ Live: https://gaitscan-frontend-mnt9.vercel.app
 ## What it does
 
 - **Upload and results.**
-  - Upload a walking video; the analysis runs on the server and the app polls until it's done.
+  - Upload a walking video, or record one in the browser; the analysis runs on the server and the
+    app polls until it's done, with an optional "notify me when it's done".
+  - A treadmill test at an entered belt speed (not yet validated).
   - Results show cadence and step time with the error range from the backend's accuracy check
     (LJMU, Topham et al. 2023).
   - Knee bend, and step length and speed (with a floor calibration), are labelled "not yet
@@ -22,15 +30,21 @@ Live: https://gaitscan-frontend-mnt9.vercel.app
 - **Before filming:** a setup check (live framing guidance in the browser), a first-test walkthrough,
   an example result (`/demo`) and Learn pages for each measurement (`/learn`).
 - **Your sessions:**
-  - History with a cadence trend, and session notes and tags.
+  - History with a cadence trend, search and tag filters, and session notes and tags.
+  - A cadence goal, re-test reminders as a calendar file, and a "next walking test" card.
+  - Ghost replay: two sessions' averaged strides, one over the other.
   - Comparing two sessions, with "real change" vs "within measurement error".
   - Knee-angle curves and an authenticated PDF report.
 - **Accounts and privacy:**
   - Consent before the first analysis.
   - Privacy center: export, delete sessions, delete the account.
-  - Password reset and email verification pages, change password.
+  - Recovery codes, change password, Sign in with Google (when configured).
+  - Password reset and email verification pages (unused until the backend sends email).
+  - Other adults on one account (profiles), each with their own history.
+  - Settings: units, theme, language (English, Hindi draft), reminders.
   - Read-only share links for one session.
-- **Clinicians** see the sessions of patients who linked to them with an invite code.
+- **Clinicians** see the sessions of patients who linked to them with an invite code, in an inbox
+  that marks what's new, and can comment on a session with the patient.
 
 ## Stack
 
@@ -71,6 +85,7 @@ Pre-commit hooks (ESLint, Prettier): `pre-commit install` (git ≥ 2.35).
 | `src/measurements.jsx` | Result tables: values, error ranges, "not yet validated" labels                      |
 | `src/components/ui/`   | The design system's primitives (owned shadcn/ui)                                     |
 | `src/api/`             | Typed client and generated schema                                                    |
+| `src/i18n/`            | Interface text: `en.js`, and `hi.js` (draft, under review)                           |
 | `e2e/`                 | Playwright specs                                                                     |
 
 ## Configuration and deployment
@@ -80,3 +95,12 @@ Pre-commit hooks (ESLint, Prettier): `pre-commit install` (git ≥ 2.35).
 - **Deployment.** Vercel (Vite preset, output `dist`). Set `VITE_API_BASE_URL` (and optionally
   `VITE_SENTRY_DSN`) for Production and Preview. The backend's `CORS_ORIGINS` must list the deployed
   origin, and its `FRONTEND_URL` must point here for links in emails.
+
+## License
+
+No licence has been chosen yet, so the default applies: all rights reserved.
+
+## More
+
+- [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md)
+- Changelog, architecture and model card: in the [backend repository](https://github.com/KanveerMadan/GaitScan/tree/main/docs)

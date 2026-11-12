@@ -1,0 +1,35 @@
+name: Bug report
+description: Something in the web app is wrong or hard to use.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please don't attach walking videos or anything that identifies a person. Security problems go
+        through private reporting (Security → Report a vulnerability), not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The screen (URL path), the steps, and a screenshot if it helps.
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      description: e.g. Chrome 140 on Android, Safari on iPhone 15, Firefox on Windows.
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      render: text

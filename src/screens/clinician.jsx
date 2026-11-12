@@ -1,34 +1,30 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, CaretRight, Copy, Plus } from "@phosphor-icons/react";
-import { api, formatDate } from "@/api/client";
+import { api, errorMessage, formatDate } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { CadenceTrend } from "@/components/cadence-trend";
-import { EmptyState, SessionList } from "@/screens/history";
-
-function Skeleton() {
-  return (
-    <div className="grid gap-3">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
-      ))}
-    </div>
-  );
-}
+import { EmptyState, LoadError } from "@/components/states";
+import { ListSkeleton } from "@/components/ui/skeleton";
+import { SessionList } from "@/screens/history";
 
 function PatientDetail({ patient, onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
+  const load = async () => {
+    setLoading(true);
+    setFailed(false);
+    try {
+      setData(await api.patientSessions(patient.patient_id));
+    } catch {
+      setFailed(true);
+    }
+    setLoading(false);
+  };
   useEffect(() => {
-    (async () => {
-      try {
-        setData(await api.patientSessions(patient.patient_id));
-      } catch {
-        /* the list stays empty; error states arrive with TanStack Query (ADR-008) */
-      }
-      setLoading(false);
-    })();
-  }, [patient.patient_id]);
+    load();
+  }, [patient.patient_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sessions = data?.sessions ?? [];
   return (
@@ -43,10 +39,13 @@ function PatientDetail({ patient, onBack }) {
           {patient.email} · {patient.session_count} session{patient.session_count !== 1 ? "s" : ""}
         </p>
       </div>
-      {loading && <Skeleton />}
-      {!loading && <CadenceTrend sessions={sessions} />}
-      {!loading && sessions.length > 0 && <SessionList sessions={sessions} />}
-      {!loading && sessions.length === 0 && <EmptyState title="No sessions yet for this patient." />}
+      {loading && <ListSkeleton label="Loading patients" />}
+      {!loading && failed && <LoadError message="Couldn't load this patient's sessions." onRetry={load} />}
+      {!loading && !failed && <CadenceTrend sessions={sessions} />}
+      {!loading && !failed && sessions.length > 0 && <SessionList sessions={sessions} />}
+      {!loading && !failed && sessions.length === 0 && (
+        <EmptyState title="No sessions yet for this patient." />
+      )}
     </div>
   );
 }
@@ -57,24 +56,30 @@ export function ClinicianScreen() {
   const [inviteCode, setInviteCode] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
 
+  const loadPatients = async () => {
+    setLoading(true);
+    setFailed(false);
+    try {
+      setPatients(await api.patients());
+    } catch {
+      setFailed(true);
+    }
+    setLoading(false);
+  };
   useEffect(() => {
-    (async () => {
-      try {
-        setPatients(await api.patients());
-      } catch {
-        setPatients([]);
-      }
-      setLoading(false);
-    })();
+    loadPatients();
   }, []);
 
   const generateInvite = async () => {
     setGenerating(true);
+    setInviteError(null);
     try {
       setInviteCode((await api.invite()).code);
-    } catch {
-      /* no code is shown; error states arrive with TanStack Query (ADR-008) */
+    } catch (e) {
+      setInviteError(errorMessage(e, "Couldn't create an invite code. Please try again."));
     }
     setGenerating(false);
   };
@@ -96,6 +101,7 @@ export function ClinicianScreen() {
         </Button>
       </div>
 
+      {inviteError && <LoadError message={inviteError} />}
       {inviteCode && (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-primary-soft px-5 py-4">
           <div>
@@ -112,13 +118,14 @@ export function ClinicianScreen() {
         </div>
       )}
 
-      {loading && <Skeleton />}
-      {!loading && patients.length === 0 && (
+      {loading && <ListSkeleton label="Loading patients" />}
+      {!loading && failed && <LoadError message="Couldn't load your patients." onRetry={loadPatients} />}
+      {!loading && !failed && patients.length === 0 && (
         <EmptyState title="No patients yet.">
           Use Invite patient to create a code and share it with your first patient.
         </EmptyState>
       )}
-      {!loading && patients.length > 0 && (
+      {!loading && !failed && patients.length > 0 && (
         <ul className="divide-y rounded-lg border bg-surface">
           {patients.map((p) => (
             <li key={p.patient_id}>

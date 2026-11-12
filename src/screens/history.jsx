@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowClockwise, ArrowsLeftRight, DownloadSimple, Tray } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowsLeftRight, DownloadSimple } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -8,13 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CadenceTrend } from "@/components/cadence-trend";
+import { useAuth } from "@/auth-context";
+import { nextTestDue } from "@/lib/reminders";
+import { ReminderButton } from "@/screens/settings";
 import { SessionSummary } from "@/measurements";
+import { isTreadmill } from "@/lib/results";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { EmptyState, LoadError } from "@/components/states";
+import { ListSkeleton } from "@/components/ui/skeleton";
 
 // sessions: newest first. `linkTo(s)` makes each date a link; `selected`/`onToggle` add checkboxes.
 export function SessionList({ sessions, linkTo, selected, onToggle }) {
   return (
-    <ul className="divide-y rounded-lg border bg-surface">
+    <ul aria-label="Sessions" className="divide-y rounded-lg border bg-surface">
       {sessions.map((s) => {
         const date = formatDate(s.created_at);
         return (
@@ -61,16 +68,6 @@ export function SessionList({ sessions, linkTo, selected, onToggle }) {
   );
 }
 
-export function EmptyState({ title, children }) {
-  return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-14 text-center">
-      <Tray size={28} className="text-muted-foreground" aria-hidden />
-      <p className="text-sm font-medium">{title}</p>
-      {children && <p className="max-w-[45ch] text-sm text-muted-foreground">{children}</p>}
-    </div>
-  );
-}
-
 function daysAgo(iso) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
   if (days <= 0) return "today";
@@ -101,6 +98,76 @@ function Latest({ session }) {
             </div>
           </div>
         ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NextTest({ latest }) {
+  const { user } = useAuth();
+  const weeks = user?.settings?.retest_weeks ?? null;
+  const due = nextTestDue(latest?.created_at, weeks);
+  const [now] = useState(() => Date.now()); // read once: rendering stays pure
+  const days = due ? Math.ceil((due.getTime() - now) / 86_400_000) : null;
+  return (
+    <Card role="region" aria-label="Next walking test">
+      <CardHeader>
+        <CardTitle>Next walking test</CardTitle>
+        <CardDescription>
+          {!weeks && "Measuring at regular intervals is how changes show up."}
+          {weeks && !due && "Due once you've done your first test."}
+          {due &&
+            `Due ${formatDate(due.toISOString(), false)} (${
+              days > 1
+                ? `in ${days} days`
+                : days === 1
+                  ? "tomorrow"
+                  : days === 0
+                    ? "today"
+                    : `${-days} days ago`
+            }), ${weeks === 1 ? "a week" : `${weeks} weeks`} after your last test.`}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {due ? (
+          <ReminderButton due={due} weeks={weeks} />
+        ) : (
+          !weeks && (
+            <Link to="/settings" className="text-sm font-medium text-primary hover:underline">
+              Set a reminder
+            </Link>
+          )
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function GoalCard({ latest }) {
+  const { user } = useAuth();
+  const goal = user?.settings?.goal_cadence ?? null;
+  const value = latest?.result?.metrics?.cadence?.value;
+  if (goal == null || value == null) return null;
+  const diff = value - goal;
+  const away = Math.round(Math.abs(diff) * 10) / 10;
+  const mdc = latest.result?.accuracy?.cadence?.mdc_95;
+  const noise = mdc != null && Math.abs(diff) < mdc;
+  return (
+    <Card role="region" aria-label="Cadence goal">
+      <CardHeader>
+        <CardTitle>Cadence goal</CardTitle>
+        <CardDescription>Your goal: {goal} steps/min (change it in Settings).</CardDescription>
+      </CardHeader>
+      <CardContent className="text-sm">
+        <p>
+          Your latest walk: <span className="tabular font-medium">{value} steps/min</span>,{" "}
+          {away === 0 ? "exactly on your goal" : `${away} steps/min ${diff < 0 ? "below" : "above"} it`}.
+        </p>
+        {noise && (
+          <p className="mt-1 text-muted-foreground">
+            That's within measurement noise: two walks by the same person differ by up to {mdc} steps/min.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -162,16 +229,24 @@ function JoinClinicianCard() {
 }
 
 export function HistoryScreen() {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const t = useT();
+  const { user } = useAuth();
+  const [allSessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true); // no "no sessions yet" flash before the first load
   const [selected, setSelected] = useState([]);
+  const [query, setQuery] = useState("");
+  const [tag, setTag] = useState(null);
+  const profiles = user?.profiles ?? [];
+  const [who, setWho] = useState(""); // "": the account holder; else a profile's id
 
+  const [failed, setFailed] = useState(false);
   const fetchHistory = async () => {
     setLoading(true);
+    setFailed(false);
     try {
       setSessions((await api.sessions()) || []);
     } catch {
-      setSessions([]);
+      setFailed(true);
     }
     setLoading(false);
   };
@@ -182,55 +257,113 @@ export function HistoryScreen() {
 
   const toggle = (id) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(-2)));
-  const latest = sessions.find((s) => !s.legacy);
+  // One person at a time: trends and goals mixing two people's walking would mean nothing.
+  const theirs = allSessions.filter((s) => String(s.profile_id ?? "") === who);
+  const sessions = profiles.length > 0 ? theirs : allSessions;
+  const latest = sessions.find((s) => !s.legacy && !isTreadmill(s.result)); // the latest walk over the ground
+  const tags = [...new Set(sessions.flatMap((s) => s.tags ?? []))].sort();
+  const q = query.trim().toLowerCase();
+  const shown = sessions.filter(
+    (s) =>
+      (!tag || s.tags?.includes(tag)) &&
+      (!q ||
+        [s.notes ?? "", ...(s.tags ?? []), formatDate(s.created_at)].join(" ").toLowerCase().includes(q)),
+  );
   const canCompare = selected.length === 2;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Your walking</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("history.title")}</h1>
         <Button variant="outline" size="sm" onClick={fetchHistory}>
           <ArrowClockwise aria-hidden />
-          Refresh
+          {t("history.refresh")}
         </Button>
       </div>
-      {loading && (
-        <div className="grid gap-3" aria-label="Loading history">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
-          ))}
+      {profiles.length > 0 && (
+        <div className="grid max-w-xs gap-2">
+          <label htmlFor="whose-walking" className="text-sm font-medium">
+            {t("history.whose")}
+          </label>
+          <select
+            id="whose-walking"
+            className="h-10 rounded-md border border-input bg-surface px-3 text-sm"
+            value={who}
+            onChange={(e) => {
+              setWho(e.target.value);
+              setSelected([]);
+            }}
+          >
+            <option value="">{t("analyse.you")}</option>
+            {profiles.map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
-      {!loading && sessions.length === 0 && (
+      {loading && <ListSkeleton label="Loading history" />}
+      {!loading && failed && <LoadError message="Couldn't load your sessions." onRetry={fetchHistory} />}
+      {!loading && !failed && sessions.length === 0 && (
         <EmptyState title="No sessions yet.">
           Analyse a video to start tracking your walking over time.
         </EmptyState>
       )}
       {!loading && latest && <Latest session={latest} />}
-      {!loading && <CadenceTrend sessions={sessions} />}
+      {!loading && <GoalCard latest={latest} />}
+      {!loading && <NextTest latest={latest} />}
+      {!loading && <CadenceTrend sessions={sessions} goal={user?.settings?.goal_cadence ?? null} />}
       {!loading && sessions.length > 0 && (
         <section className="flex flex-col gap-3" aria-label="Sessions">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">Sessions</h2>
+            <h2 className="text-base font-semibold">{t("history.sessions")}</h2>
             <Button asChild={canCompare} size="sm" variant="outline" disabled={!canCompare}>
               {canCompare ? (
                 <Link to={`/compare/${selected[0]}/${selected[1]}`}>
                   <ArrowsLeftRight aria-hidden />
-                  Compare selected
+                  {t("history.compare")}
                 </Link>
               ) : (
-                <span className={cn(!canCompare && "text-muted-foreground")}>
-                  Select two sessions to compare
-                </span>
+                <span className={cn(!canCompare && "text-muted-foreground")}>{t("history.selectTwo")}</span>
               )}
             </Button>
           </div>
-          <SessionList
-            sessions={sessions}
-            linkTo={(s) => `/sessions/${s.id}`}
-            selected={selected}
-            onToggle={toggle}
-          />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              type="search"
+              aria-label="Search sessions"
+              placeholder="Search notes, tags or dates"
+              className="sm:max-w-xs"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5" aria-label="Filter by tag" role="group">
+                {tags.map((t) => (
+                  <Button
+                    key={t}
+                    size="sm"
+                    variant={tag === t ? "default" : "outline"}
+                    aria-pressed={tag === t}
+                    onClick={() => setTag(tag === t ? null : t)}
+                  >
+                    {t}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+          {shown.length > 0 ? (
+            <SessionList
+              sessions={shown}
+              linkTo={(s) => `/sessions/${s.id}`}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ) : (
+            <EmptyState title="No sessions match.">Try other words, or clear the tag filter.</EmptyState>
+          )}
         </section>
       )}
       <JoinClinicianCard />

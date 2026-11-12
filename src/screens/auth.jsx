@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { api, errorMessage } from "@/api/client";
 import { useAuth } from "@/auth-context";
+import { GoogleSignIn } from "@/components/google-signin";
 import { CodeList, SaveCodesNotice } from "@/components/recovery-codes";
 import { BrandMark } from "@/components/brand-mark";
 import { WalkerCanvas } from "@/landing/walker-canvas";
@@ -61,29 +62,38 @@ function Field({ id, label, ...props }) {
 }
 
 // Where to go next is the router's job (App.jsx): signed in at /signup leads to the walkthrough.
-function useSubmit(call, fallback, onCodes = null) {
+// After any sign-in or sign-up response: a new account first shows its recovery codes.
+function useFinish(onCodes) {
   const { login } = useAuth();
+  return (res) => {
+    const session = {
+      token: res.access_token,
+      role: res.role,
+      name: res.full_name,
+      recoveryCodesLeft: res.recovery_codes?.length ?? res.recovery_codes_left,
+      settings: res.settings ?? null,
+      profiles: res.profiles ?? [],
+    };
+    if (res.recovery_codes && onCodes) onCodes(res.recovery_codes, () => login(session));
+    else login(session);
+  };
+}
+
+function useSubmit(call, fallback, onCodes = null) {
+  const finish = useFinish(onCodes);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const submit = async (form) => {
     setLoading(true);
     setError("");
     try {
-      const res = await call(form);
-      const session = {
-        token: res.access_token,
-        role: res.role,
-        name: res.full_name,
-        recoveryCodesLeft: res.recovery_codes?.length ?? res.recovery_codes_left,
-      };
-      if (res.recovery_codes && onCodes) onCodes(res.recovery_codes, () => login(session));
-      else login(session);
+      finish(await call(form));
     } catch (e) {
       setError(errorMessage(e, fallback));
     }
     setLoading(false);
   };
-  return { error, loading, submit };
+  return { error, loading, submit, setError, finish };
 }
 
 function RecoverAccount({ onBack }) {
@@ -164,9 +174,13 @@ function SaveCodes({ codes, onContinue }) {
   );
 }
 
-function LoginPage({ onForgot }) {
+function LoginPage({ onForgot, onCodes }) {
   const [form, setForm] = useState({ email: "", password: "" });
-  const { error, loading, submit } = useSubmit(api.login, "Login failed. Please try again.");
+  const { error, loading, submit, setError, finish } = useSubmit(
+    api.login,
+    "Login failed. Please try again.",
+    onCodes,
+  );
   const onKeyDown = (e) => e.key === "Enter" && submit(form);
   return (
     <AuthLayout heading="Sign in to your account">
@@ -194,6 +208,7 @@ function LoginPage({ onForgot }) {
       <Button onClick={() => submit(form)} disabled={loading}>
         {loading ? "Signing in…" : "Sign in"}
       </Button>
+      <GoogleSignIn onResult={finish} onError={setError} />
       <Button variant="link" className="h-auto self-center p-0 text-sm" onClick={onForgot}>
         Forgot password?
       </Button>
@@ -214,7 +229,7 @@ function LoginPage({ onForgot }) {
 
 function RegisterPage({ onCodes }) {
   const [form, setForm] = useState({ email: "", password: "", full_name: "" });
-  const { error, loading, submit } = useSubmit(
+  const { error, loading, submit, setError, finish } = useSubmit(
     api.register,
     "Registration failed. Please try again.",
     onCodes,
@@ -251,6 +266,7 @@ function RegisterPage({ onCodes }) {
       <Button onClick={() => submit(form)} disabled={loading}>
         {loading ? "Creating account…" : "Create account"}
       </Button>
+      <GoogleSignIn onResult={finish} onError={setError} />
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link to="/signin" className="font-medium text-primary underline-offset-4 hover:underline">
@@ -279,7 +295,10 @@ export function AuthGate({ children }) {
         (pathname === "/signup" ? (
           <RegisterPage onCodes={(list, done) => go("codes", { list, go: done })} />
         ) : (
-          <LoginPage onForgot={() => go("forgot")} />
+          <LoginPage
+            onForgot={() => go("forgot")}
+            onCodes={(list, done) => go("codes", { list, go: done })}
+          />
         ))}
     </AuthScreen>
   );
