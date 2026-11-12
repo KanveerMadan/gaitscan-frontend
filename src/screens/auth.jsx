@@ -174,40 +174,55 @@ function SaveCodes({ codes, onContinue }) {
   );
 }
 
+// Sign-in and sign-up read the fields when the form is submitted, not from React state: autofill
+// and password managers can fill a field without the change event a controlled input needs, and
+// the next render then wiped the field and sent "" (2026-11-12: "An email address must have an
+// @-sign"). A real <form> also gives Enter-to-submit, the browser's own email check and lets
+// password managers offer to save the new account.
+function AuthForm({ onSubmit, children }) {
+  const handle = (e) => {
+    e.preventDefault();
+    onSubmit(Object.fromEntries(new FormData(e.currentTarget)));
+  };
+  return (
+    <form onSubmit={handle} className="flex flex-col gap-4">
+      {children}
+    </form>
+  );
+}
+
 function LoginPage({ onForgot, onCodes }) {
-  const [form, setForm] = useState({ email: "", password: "" });
   const { error, loading, submit, setError, finish } = useSubmit(
     api.login,
     "Login failed. Please try again.",
     onCodes,
   );
-  const onKeyDown = (e) => e.key === "Enter" && submit(form);
   return (
     <AuthLayout heading="Sign in to your account">
       {error && <Alert variant="destructive">{error}</Alert>}
-      <Field
-        id="login-email"
-        label="Email"
-        type="email"
-        autoComplete="email"
-        placeholder="you@example.com"
-        value={form.email}
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-        onKeyDown={onKeyDown}
-      />
-      <Field
-        id="login-password"
-        label="Password"
-        type="password"
-        autoComplete="current-password"
-        placeholder="••••••••"
-        value={form.password}
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
-        onKeyDown={onKeyDown}
-      />
-      <Button onClick={() => submit(form)} disabled={loading}>
-        {loading ? "Signing in…" : "Sign in"}
-      </Button>
+      <AuthForm onSubmit={submit}>
+        <Field
+          id="login-email"
+          name="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          required
+        />
+        <Field
+          id="login-password"
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••"
+          required
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </AuthForm>
       <GoogleSignIn onResult={finish} onError={setError} />
       <Button variant="link" className="h-auto self-center p-0 text-sm" onClick={onForgot}>
         Forgot password?
@@ -228,7 +243,6 @@ function LoginPage({ onForgot, onCodes }) {
 }
 
 function RegisterPage({ onCodes }) {
-  const [form, setForm] = useState({ email: "", password: "", full_name: "" });
   const { error, loading, submit, setError, finish } = useSubmit(
     api.register,
     "Registration failed. Please try again.",
@@ -237,35 +251,30 @@ function RegisterPage({ onCodes }) {
   return (
     <AuthLayout heading="Create your account">
       {error && <Alert variant="destructive">{error}</Alert>}
-      <Field
-        id="register-name"
-        label="Full name"
-        type="text"
-        autoComplete="name"
-        value={form.full_name}
-        onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-      />
-      <Field
-        id="register-email"
-        label="Email"
-        type="email"
-        autoComplete="email"
-        placeholder="you@example.com"
-        value={form.email}
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
-      />
-      <Field
-        id="register-password"
-        label="Password"
-        type="password"
-        autoComplete="new-password"
-        placeholder="At least 10 characters"
-        value={form.password}
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
-      />
-      <Button onClick={() => submit(form)} disabled={loading}>
-        {loading ? "Creating account…" : "Create account"}
-      </Button>
+      <AuthForm onSubmit={submit}>
+        <Field id="register-name" name="full_name" label="Full name" type="text" autoComplete="name" />
+        <Field
+          id="register-email"
+          name="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          required
+        />
+        <Field
+          id="register-password"
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          placeholder="At least 10 characters"
+          required
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? "Creating account…" : "Create account"}
+        </Button>
+      </AuthForm>
       <GoogleSignIn onResult={finish} onError={setError} />
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}

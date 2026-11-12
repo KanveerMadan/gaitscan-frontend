@@ -127,7 +127,10 @@ export async function waitForAnalysis(
   }
 }
 
-type Detail = string | { code?: string; message?: string } | { msg: string }[] | undefined;
+type Detail =
+  string | { code?: string; message?: string } | { msg: string; loc?: (string | number)[] }[] | undefined;
+
+const BAD_EMAIL = "Enter a valid email address, like name@example.com.";
 
 // One place to turn an API error into text a person can read.
 export function errorMessage(err: unknown, fallback: string): string {
@@ -137,8 +140,10 @@ export function errorMessage(err: unknown, fallback: string): string {
   if (typeof detail === "string") return detail;
   // Quality gate / calibration rejections: { code, message }
   if (detail && !Array.isArray(detail) && typeof detail.message === "string") return detail.message;
-  // FastAPI validation errors: [{ msg, loc, ... }]
-  if (Array.isArray(detail) && detail[0]?.msg) return detail.map((d) => d.msg).join(" ");
+  // FastAPI validation errors: [{ msg, loc, ... }]. The validator's wording ("value is not a valid
+  // email address: An email address must have an @-sign.") isn't written for people, so name the
+  // field when it's the email, otherwise use the form's own message.
+  if (Array.isArray(detail)) return detail.some((d) => d?.loc?.at(-1) === "email") ? BAD_EMAIL : fallback;
   if (res.status === 429) {
     const seconds = Number(res.headers?.["retry-after"]);
     const minutes = Math.max(1, Math.round(seconds / 60));
