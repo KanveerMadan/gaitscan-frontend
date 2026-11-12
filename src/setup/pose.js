@@ -4,7 +4,8 @@
 export const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
 export const MODEL_SHA256 = "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1";
-const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
+// The wasm runtime must be the same release as the installed package (src/setup/pose.test.js).
+export const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
 
 export async function sha256Hex(buffer) {
   const digest = await crypto.subtle.digest("SHA-256", buffer);
