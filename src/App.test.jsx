@@ -143,6 +143,7 @@ test("registration offers no role choice and sends no role", async () => {
   fireEvent.click(screen.getByText("Create one"));
   expect(screen.queryByText("Clinician")).toBeNull();
   fireEvent.change(screen.getByPlaceholderText("you@example.com"), { target: { value: "a@b.com" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "a-long-enough-password" } });
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
   });
@@ -553,7 +554,7 @@ test("429 shows the server's message when it has one", async () => {
   expect(screen.getByText("Too many attempts. Try again in 15 minute(s).")).toBeInTheDocument();
 });
 
-test("validation errors with a list detail show a message instead of crashing", async () => {
+test("validation errors with a list detail show the form's message, not the validator's", async () => {
   axios.post.mockRejectedValueOnce({
     response: {
       status: 422,
@@ -561,7 +562,8 @@ test("validation errors with a list detail show a message instead of crashing", 
     },
   });
   await submitLogin();
-  expect(screen.getByText("value is not a valid email address")).toBeInTheDocument();
+  expect(screen.getByText("Login failed. Please try again.")).toBeInTheDocument();
+  expect(screen.queryByText("value is not a valid email address")).toBeNull();
 });
 
 async function openChangePassword() {
