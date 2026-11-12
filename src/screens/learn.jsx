@@ -64,19 +64,6 @@ const METRICS = [
     sources: ["topham", "stenum"],
   },
   {
-    slug: "peak-knee-flexion",
-    name: "Peak knee bend",
-    unit: "°",
-    what: "The largest bend of each knee during a stride (in the swing, when the foot is off the floor), per leg. The value shown is the median over the strides measured.",
-    how: [
-      "The angle between the thigh (hip to knee) and the shank (knee to ankle), measured in the video picture, so it needs a side-on camera: in our projection check, a true 60° bend read 53.5° with the camera 30° off side-on.",
-      "Strides run from one heel strike of a foot to its next, found where the heel is furthest ahead of the pelvis (Zeni et al. 2008). A leg's value is only shown when its strides can be timed reliably.",
-    ],
-    caveat:
-      "Not yet validated: there is no knee-angle reference to check it against yet. Use it to compare your own recordings, not as an exact angle.",
-    sources: ["zeni", "stenum"],
-  },
-  {
     slug: "step-length",
     name: "Step length",
     unit: "m",

@@ -3,7 +3,8 @@ import { PageSkeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, DownloadSimple, Trash } from "@phosphor-icons/react";
 import { api, downloadReport, errorMessage, formatDate } from "@/api/client";
-import { KneeCurves } from "@/components/knee-curves";
+import { CadenceReference } from "@/components/cadence-reference";
+import { usePerson } from "@/lib/person";
 import { StrideReplay } from "@/components/stride-replay";
 import { ShareCard } from "@/components/share-card";
 import { CommentThread } from "@/components/comments";
@@ -128,6 +129,8 @@ export function SessionScreen() {
   const owner = useAuth()?.user?.role !== "clinician";
   const [session, setSession] = useState(null);
   const [error, setError] = useState(null);
+  // Whose age and sex the cadence reference uses: the session's person (owner's own account only).
+  const person = usePerson(session?.profile_id ?? null);
 
   useEffect(() => {
     setSession(null);
@@ -163,8 +166,10 @@ export function SessionScreen() {
           ) : (
             <>
               <ResultHeadline result={session.result} />
+              {owner && (
+                <CadenceReference result={session.result} person={person} when={session.created_at} />
+              )}
               <MeasurementTable result={session.result} />
-              <KneeCurves series={[{ label: "This session", result: session.result }]} />
               <StrideReplay
                 series={[{ label: "This session", outline: session.result?.curves?.stride_outline }]}
               />

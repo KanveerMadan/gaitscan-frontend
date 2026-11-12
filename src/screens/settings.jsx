@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { INTERVALS, downloadCalendar, nextTestDue } from "@/lib/reminders";
+import { MOBBS_2025 } from "@/lib/norms";
 import { cn } from "@/lib/utils";
 
 function Choice({ name, value, options, onChange, label }) {
@@ -103,6 +104,104 @@ function GoalCard({ goal, save }) {
 
 const ADULT_AGE = 18;
 
+// Sex, for the cadence reference only (the study reports women and men); "" is "not given".
+function SexSelect({ id, label, value, onChange }) {
+  return (
+    <div className="grid gap-2">
+      <label htmlFor={id} className="font-medium">
+        {label}
+      </label>
+      <select
+        id={id}
+        className="h-10 rounded-md border border-input bg-surface px-3 text-sm"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+      >
+        <option value="">Not given</option>
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+      </select>
+    </div>
+  );
+}
+
+function ReferenceSource() {
+  return (
+    <a
+      href={MOBBS_2025.url}
+      target="_blank"
+      rel="noreferrer"
+      className="text-primary underline underline-offset-4"
+    >
+      {MOBBS_2025.short}
+    </a>
+  );
+}
+
+// The account holder's sex and year of birth (backend app/api/settings.py), both optional: with both,
+// results show a published cadence reference for their age and sex (src/lib/norms.js).
+function AboutYouCard({ settings, save }) {
+  const [year, setYear] = useState(settings.birth_year ? String(settings.birth_year) : "");
+  const latestYear = new Date().getFullYear() - ADULT_AGE;
+  const born = Number(year);
+  const validYear = year.length === 4 && born >= 1900 && born <= latestYear;
+  return (
+    <Card role="region" aria-label="About you">
+      <CardHeader>
+        <CardTitle>About you (optional)</CardTitle>
+        <CardDescription>
+          Give both and your results show the cadence of people of your sex and age group in a published study
+          (<ReferenceSource />
+          ), for context. Leave them empty and nothing is shown. They're used for nothing else, aren't in
+          shared links or reports, and you can remove them at any time.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 text-sm">
+        <div className="grid max-w-md gap-4 sm:grid-cols-2">
+          <SexSelect id="my-sex" label="Sex" value={settings.sex} onChange={(sex) => save({ sex })} />
+          <form
+            className="grid gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (validYear) save({ birth_year: born });
+            }}
+          >
+            <label htmlFor="my-year" className="font-medium">
+              Year of birth
+            </label>
+            <div className="flex gap-2">
+              <Input
+                id="my-year"
+                inputMode="numeric"
+                maxLength={4}
+                value={year}
+                onChange={(e) => setYear(e.target.value.replace(/\D/g, ""))}
+              />
+              <Button type="submit" size="sm" variant="outline" disabled={!validYear} aria-label="Save year">
+                Save
+              </Button>
+            </div>
+          </form>
+        </div>
+        {(settings.sex || settings.birth_year) && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-fit"
+            onClick={() => {
+              setYear("");
+              save({ sex: null, birth_year: null });
+            }}
+          >
+            <Trash aria-hidden />
+            Remove both
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // Other adults on the account (backend app/api/profiles.py). Adults only: the year is self-declared
 // and checked here and again on the server. Removing someone removes their sessions too.
 function PeopleCard() {
@@ -111,6 +210,7 @@ function PeopleCard() {
   const [people, setPeople] = useState(null);
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
+  const [sex, setSex] = useState(null);
   const [adult, setAdult] = useState(false);
   const [confirming, setConfirming] = useState(null);
   const [error, setError] = useState(null);
@@ -135,13 +235,28 @@ function PeopleCard() {
     e.preventDefault();
     setError(null);
     try {
-      const p = await api.addProfile({ name: name.trim(), birth_year: born, is_adult: true });
+      const p = await api.addProfile({
+        name: name.trim(),
+        birth_year: born,
+        is_adult: true,
+        ...(sex ? { sex } : {}),
+      });
       keep([...(people ?? []), p]);
       setName("");
       setYear("");
+      setSex(null);
       setAdult(false);
     } catch (err) {
       setError(errorMessage(err, "Couldn't add them. Please try again."));
+    }
+  };
+  const setTheirSex = async (id, value) => {
+    setError(null);
+    try {
+      const p = await api.updateProfile(id, { sex: value });
+      keep(people.map((x) => (x.id === id ? p : x)));
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't save that. Please try again."));
     }
   };
   const remove = async (id) => {
@@ -161,7 +276,9 @@ function PeopleCard() {
         <CardTitle>{t("settings.people")}</CardTitle>
         <CardDescription>
           Measure another adult, such as a partner or a parent, on this account. Their walking is kept apart
-          from yours, and clinicians you link with see only yours.
+          from yours, and clinicians you link with see only yours. Their sex is optional, for the cadence
+          reference only (<ReferenceSource />
+          ).
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">
@@ -170,9 +287,21 @@ function PeopleCard() {
           <ul className="divide-y rounded-md border">
             {people.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                <span>
-                  <span className="font-medium">{p.name}</span>
-                  <span className="text-muted-foreground"> · born {p.birth_year}</span>
+                <span className="flex flex-wrap items-center gap-3">
+                  <span>
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-muted-foreground"> · born {p.birth_year}</span>
+                  </span>
+                  <select
+                    aria-label={`Sex of ${p.name} (optional)`}
+                    className="h-8 rounded-md border border-input bg-surface px-2 text-sm"
+                    value={p.sex ?? ""}
+                    onChange={(e) => setTheirSex(p.id, e.target.value || null)}
+                  >
+                    <option value="">Sex not given</option>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                  </select>
                 </span>
                 {confirming === p.id ? (
                   <span className="flex flex-wrap items-center gap-2">
@@ -213,6 +342,9 @@ function PeopleCard() {
               onChange={(e) => setYear(e.target.value.replace(/\D/g, ""))}
               aria-describedby={tooYoung ? "person-year-note" : undefined}
             />
+          </div>
+          <div className="sm:col-span-2 sm:max-w-[12rem]">
+            <SexSelect id="person-sex" label="Sex (optional)" value={sex} onChange={setSex} />
           </div>
           {tooYoung && (
             <p id="person-year-note" className="text-destructive sm:col-span-2">
@@ -303,6 +435,7 @@ export function SettingsScreen() {
             </CardContent>
           </Card>
           <GoalCard goal={settings.goal_cadence} save={save} />
+          <AboutYouCard settings={settings} save={save} />
           <PeopleCard />
           <Card>
             <CardHeader>

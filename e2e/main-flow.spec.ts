@@ -65,6 +65,6 @@ test("sign in, upload a walking video, wait for the analysis, see measurements w
   await expect(page.getByRole("heading", { name: "Measurements" })).toBeVisible();
   await expect(page.getByRole("row", { name: /Cadence/ })).toContainText("109.1 steps/min");
   await expect(page.getByRole("row", { name: /Cadence/ })).toContainText("± 4.5 steps/min");
-  await expect(page.getByRole("row", { name: /Peak knee bend/ })).toContainText("Not yet validated");
+  await expect(page.getByRole("row", { name: /knee/i })).toHaveCount(0); // removed 2026-11-12
   expect(polls).toBe(2);
 });

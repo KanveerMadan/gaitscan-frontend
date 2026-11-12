@@ -12,7 +12,15 @@ import { useT } from "@/i18n";
 import { Button } from "@/components/ui/button";
 
 const SAVED = "gaitscan_job";
-const IDLE = { stage: "upload", progress: "", results: null, error: null, needsConsent: null };
+// profileId: whose walk it is (null: the account holder), for the cadence reference with the result.
+const IDLE = {
+  stage: "upload",
+  progress: "",
+  results: null,
+  error: null,
+  needsConsent: null,
+  profileId: null,
+};
 const PROGRESS = {
   queued: "Waiting for the analysis to start…",
   running: "Finding the body in every frame and measuring the steps…",
@@ -26,14 +34,15 @@ const FAILED_NOTE = "Your video couldn't be measured: see why.";
 // page does.
 function savedJob() {
   try {
-    return JSON.parse(sessionStorage.getItem(SAVED))?.jobId ?? null;
+    const saved = JSON.parse(sessionStorage.getItem(SAVED));
+    return saved?.jobId ? { jobId: saved.jobId, profileId: saved.profileId ?? null } : null;
   } catch {
     return null;
   }
 }
-function saveJob(jobId) {
+function saveJob(jobId, profileId = null) {
   try {
-    if (jobId) sessionStorage.setItem(SAVED, JSON.stringify({ jobId }));
+    if (jobId) sessionStorage.setItem(SAVED, JSON.stringify({ jobId, profileId }));
     else sessionStorage.removeItem(SAVED);
   } catch {
     /* nothing to keep it in */
@@ -56,13 +65,13 @@ export function AnalysisProvider({ children }) {
       new Notification("GaitScan", { body });
   };
 
-  const follow = async (jobId, { resumed = false } = {}) => {
+  const follow = async (jobId, { resumed = false, profileId = null } = {}) => {
     run.current.ctrl?.abort();
     const ctrl = new AbortController();
     const id = run.current.id + 1;
     run.current = { id, ctrl };
     const current = () => run.current.id === id;
-    saveJob(jobId);
+    saveJob(jobId, profileId);
     try {
       const done = await waitForAnalysis(
         jobId,
@@ -72,7 +81,7 @@ export function AnalysisProvider({ children }) {
       if (!current()) return;
       setSeen(watching.current);
       if (done.status === "done" && done.analysis) {
-        setJob({ ...IDLE, stage: "results", results: done.analysis });
+        setJob({ ...IDLE, stage: "results", results: done.analysis, profileId });
         notify(DONE_NOTE);
       } else {
         setJob({ ...IDLE, error: done.rejection?.message || done.error || FAILED });
@@ -95,8 +104,8 @@ export function AnalysisProvider({ children }) {
 
   // A job kept from before a reload. Cleanup stops the poll (signing out, or StrictMode's re-mount).
   useEffect(() => {
-    const jobId = savedJob();
-    if (jobId) follow(jobId, { resumed: true });
+    const saved = savedJob();
+    if (saved) follow(saved.jobId, { resumed: true, profileId: saved.profileId });
     return () => {
       run.current.ctrl?.abort();
       run.current = { id: run.current.id + 1, ctrl: null };
@@ -125,7 +134,7 @@ export function AnalysisProvider({ children }) {
     }
     if (run.current.id !== id) return;
     setJob((j) => ({ ...j, progress: PROGRESS.queued }));
-    await follow(queued.job_id);
+    await follow(queued.job_id, { profileId });
   };
 
   const askToNotify = async () => {

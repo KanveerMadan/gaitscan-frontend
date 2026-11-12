@@ -79,7 +79,7 @@ test("a session's page shows no knee angle, even from a result stored before", a
 
 test("history shows no knee angle", async () => {
   await open("/history", (url) => (url.endsWith("/sessions") ? [SESSION] : []));
-  expect(await screen.findByText(/cadence:/i)).toBeInTheDocument();
+  expect((await screen.findAllByText(/109\.1/)).length).toBeGreaterThan(0);
   expect(document.body.textContent).not.toMatch(KNEE);
 });
 

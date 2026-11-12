@@ -83,6 +83,43 @@ function ExportSection() {
   );
 }
 
+// F06 (owner decision 2026-11-12): there is no scheduled purge, so the page says plainly how long each
+// kind of data is kept. Facts from the backend: the video is removed in a `finally:` block
+// (app/api/analysis.py), deleting removes every row that refers to the account (app/api/privacy.py),
+// share links expire (app/api/shares.py), recovery codes are stored hashed.
+function RetentionSection() {
+  return (
+    <Card role="region" aria-label="How long your data is kept">
+      <CardHeader>
+        <CardTitle>How long your data is kept</CardTitle>
+        <CardDescription>GaitScan deletes nothing on a schedule: you decide.</CardDescription>
+      </CardHeader>
+      <CardContent className="text-sm leading-relaxed">
+        <ul className="flex list-disc flex-col gap-2 pl-5">
+          <li>
+            <strong className="font-medium">Videos are deleted as soon as they're analysed</strong>, whether
+            the analysis worked or not. They are never kept.
+          </li>
+          <li>
+            Your measurements, notes, tags, comments, settings and the people on your account are kept until
+            you delete them: one session at a time, or everything by deleting your account below. Deleting
+            removes them from the database straight away.
+          </li>
+          <li>
+            Share links stop working after the number of days you chose (7 unless you changed it), or as soon
+            as you revoke them.
+          </li>
+          <li>Recovery codes are stored scrambled (hashed) until you use or replace them.</li>
+          <li>
+            Server logs record analysis job numbers and errors, not your measurements or your email address,
+            and our hosting provider keeps them for a limited time.
+          </li>
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DeleteAccountSection() {
   const { logout } = useAuth();
   const [password, setPassword] = useState("");
@@ -181,6 +218,7 @@ export function PrivacyScreen() {
       <h1 className="text-2xl font-semibold tracking-tight">Privacy</h1>
       <ConsentSection />
       <RecoveryCodesSection />
+      <RetentionSection />
       <ExportSection />
       <DeleteAccountSection />
     </div>

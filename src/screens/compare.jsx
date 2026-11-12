@@ -6,7 +6,6 @@ import { PageSkeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "react-router";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { api, errorMessage, formatDate } from "@/api/client";
-import { KneeCurves } from "@/components/knee-curves";
 import { StrideReplay } from "@/components/stride-replay";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -120,12 +119,6 @@ export function CompareScreen() {
           </p>
         </CardContent>
       </Card>
-      <KneeCurves
-        series={[
-          { label: formatDate(earlier.created_at, false), result: earlier.result },
-          { label: formatDate(later.created_at, false), result: later.result },
-        ]}
-      />
       <StrideReplay
         series={[
           { label: formatDate(earlier.created_at, false), outline: earlier.result?.curves?.stride_outline },

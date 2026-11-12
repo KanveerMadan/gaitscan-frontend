@@ -273,8 +273,8 @@ function Accuracy() {
             <span className="flex items-center gap-2 font-medium text-foreground">
               <Warning aria-hidden className="size-4 text-warning" /> Not yet validated
             </span>
-            Knee bend, and step length and walking speed (with a floor calibration), are shown labelled as
-            such: there is no reference to check them against yet.
+            Step length and walking speed (with a floor calibration) and the treadmill test are shown labelled
+            as such: there is no reference to check them against.
           </div>
         </div>
         <Link

@@ -14,6 +14,8 @@ import { takeRecording } from "@/setup/record";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
+import { CadenceReference } from "@/components/cadence-reference";
+import { usePerson } from "@/lib/person";
 
 const STEPS = ["analyse.step1", "analyse.step2", "analyse.step3"];
 
@@ -36,6 +38,7 @@ export function AnalyseScreen() {
   // you open another page, and are here again when you come back.
   const job = useAnalysis();
   const { stage, results, error, progress, needsConsent, notifying, askToNotify, watch } = job;
+  const person = usePerson(job.profileId);
   useEffect(watch, [watch]);
   // "Analysis done" notification: asked for only when the user clicks, shown if the tab is hidden
   // or you're on another page.
@@ -149,6 +152,7 @@ export function AnalyseScreen() {
           </Button>
         </div>
         <ResultHeadline result={results.result} />
+        <CadenceReference result={results.result} person={person} />
         <MeasurementTable result={results.result} />
         <PassTable result={results.result} />
         <QualitySummary quality={results.result?.quality} />

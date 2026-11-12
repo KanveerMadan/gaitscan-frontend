@@ -13,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const ROWS = [
   ["cadence", "metric.cadence", "cadence"],
   ["step_time", "metric.stepTime", "step-time"],
-  ["peak_knee_flexion", "metric.knee", "peak-knee-flexion"],
   ["step_length", "metric.stepLength", "step-length"],
   ["walking_speed", "metric.speed", "walking-speed"],
 ];
@@ -21,14 +20,14 @@ const ROWS = [
 const TREADMILL_ROWS = [
   ["cadence", "metric.cadence", "cadence"],
   ["step_time", "metric.stepTime", "step-time"],
-  ["peak_knee_flexion", "metric.knee", "peak-knee-flexion"],
   ["belt_speed", "metric.belt", null],
   ["step_length", "metric.stepLengthBelt", "step-length"],
 ];
 
-// No reference check yet (backend gaitcore/accuracy.py): knee angles until Phase 8, calibrated
-// distances on simulated walking only. Used for results stored before the API sent `accuracy`.
-const NOT_YET_VALIDATED = new Set(["peak_knee_flexion", "step_length", "walking_speed"]);
+// No reference check (backend gaitcore/accuracy.py): calibrated distances, checked on simulated walking
+// only, for good (no more video will be collected, 2026-11-12). Used for results stored before the API
+// sent `accuracy`. Knee angle was removed on 2026-11-12 and isn't shown even if an old result has it.
+const NOT_YET_VALIDATED = new Set(["step_length", "walking_speed"]);
 
 function notYetValidated(result, key) {
   const status = result?.accuracy?.[key]?.status;
@@ -149,9 +148,7 @@ export function MeasurementTable({ result }) {
           <TableHeader>
             <TableRow>
               <TableHead>{t("results.measurement")}</TableHead>
-              <TableHead>{t("results.left")}</TableHead>
-              <TableHead>{t("results.right")}</TableHead>
-              <TableHead>{t("results.both")}</TableHead>
+              <TableHead>{t("results.value")}</TableHead>
               <TableHead>{t("results.errorRange")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -160,7 +157,6 @@ export function MeasurementTable({ result }) {
               .filter(([key]) => key in m)
               .map(([key, label, slug]) => {
                 const item = m[key];
-                const perLeg = item && ("left" in item || "right" in item);
                 return (
                   <TableRow key={key}>
                     <TableCell className="font-medium">
@@ -172,9 +168,9 @@ export function MeasurementTable({ result }) {
                         t(label)
                       )}
                     </TableCell>
-                    <TableCell>{perLeg && <Value item={item.left} />}</TableCell>
-                    <TableCell>{perLeg && <Value item={item.right} />}</TableCell>
-                    <TableCell>{!perLeg && <Value item={item} />}</TableCell>
+                    <TableCell>
+                      <Value item={item} />
+                    </TableCell>
                     <TableCell>{accuracyText(result, key, t)}</TableCell>
                   </TableRow>
                 );
@@ -189,15 +185,15 @@ export function MeasurementTable({ result }) {
         ))}
         {treadmill ? (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Values are the median (angles) or mean (times) over the strides measured, ± their spread. The
-            accuracy check behind GaitScan's error ranges used walks over the ground, so none of these is
-            validated on a treadmill yet. Step length is the belt speed you entered times the step time.
+            Values are the mean over the steps measured, ± their spread. The accuracy check behind GaitScan's
+            error ranges used walks over the ground, so none of these is validated on a treadmill yet. Step
+            length is the belt speed you entered times the step time.
           </p>
         ) : (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Values are the median (angles) or mean (times) over the strides measured, ± their spread. Error
-            range: in an accuracy check on side-view walks from a public dataset (LJMU, Topham et al. 2023),
-            95% of measurements were within this much of the reference.
+            Values are the mean over the steps measured, ± their spread. Error range: in an accuracy check on
+            side-view walks from a public dataset (LJMU, Topham et al. 2023), 95% of measurements were within
+            this much of the reference.
             {!("step_length" in m) &&
               " Step length and walking speed need a floor calibration and were not measured."}
           </p>
@@ -316,14 +312,7 @@ export function SessionSummary({ session }) {
         Cadence: <strong className="tabular font-medium text-foreground">{formatValue(m.cadence)}</strong>
       </span>
       <span>
-        Peak knee bend L/R{notYetValidated(session.result, "peak_knee_flexion") && " (not yet validated)"}:{" "}
-        <strong className="tabular font-medium text-foreground">
-          {formatValue(m.peak_knee_flexion?.left)}
-        </strong>{" "}
-        /{" "}
-        <strong className="tabular font-medium text-foreground">
-          {formatValue(m.peak_knee_flexion?.right)}
-        </strong>
+        Step time: <strong className="tabular font-medium text-foreground">{formatValue(m.step_time)}</strong>
       </span>
     </div>
   );
