@@ -97,6 +97,8 @@ export const api = {
   profiles: async () => (await axios.get<S["ProfileOut"][]>(`${API}/profiles`)).data,
   addProfile: async (body: S["ProfileIn"]) =>
     (await axios.post<S["ProfileOut"]>(`${API}/profiles`, body)).data,
+  updateProfile: async (id: number, body: S["ProfileUpdate"]) =>
+    (await axios.patch<S["ProfileOut"]>(`${API}/profiles/${id}`, body)).data,
   deleteProfile: async (id: number) => {
     await axios.delete(`${API}/profiles/${id}`);
   },

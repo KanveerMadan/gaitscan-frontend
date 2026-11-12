@@ -69,7 +69,7 @@ function draw(ctx, w, h, outlines, phase) {
 
 function why(outline) {
   if (outline === undefined) return "analysed before stride outlines were kept.";
-  return "the left and right legs couldn't be told apart, so there is no stride outline (as for the knee bend).";
+  return "the left and right legs couldn't be told apart, so there is no stride outline.";
 }
 
 // series: [{ label, outline }]; with two, the first (earlier) is drawn as the ghost.
@@ -169,7 +169,8 @@ export function StrideReplay({ series }) {
           </p>
         ))}
         <p className="text-xs text-muted-foreground">
-          Knee angles are not yet validated: use this to compare your own walks, not as exact angles.
+          The outline is drawn from the points tracked in the video and isn't validated: use it to compare
+          your own walks, not to read off angles.
         </p>
       </CardContent>
     </Card>

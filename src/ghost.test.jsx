@@ -68,7 +68,7 @@ test("comparing two sessions replays both strides, the earlier as a ghost", asyn
   expect(replay.textContent).toMatch(/20 Oct 2026/);
   expect(within(replay).getByRole("button", { name: /pause/i })).toBeInTheDocument();
   expect(within(replay).getByRole("slider", { name: /stride phase/i })).toBeInTheDocument();
-  expect(replay.textContent).toMatch(/not yet validated/i);
+  expect(replay.textContent).toMatch(/isn't validated/i);
 });
 
 test("a session without a stride outline says why", async () => {

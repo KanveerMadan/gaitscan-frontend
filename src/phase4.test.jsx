@@ -136,9 +136,7 @@ test("comparing two sessions says whether a difference is larger than repeat wal
   const row = await screen.findByRole("row", { name: /cadence/i });
   expect(row.textContent).toMatch(/\+6(\.0)? steps\/min/);
   expect(row.textContent).toMatch(/larger than/i);
-  expect(screen.getByRole("region", { name: /knee bend over the stride/i }).textContent).toMatch(
-    /not yet validated/i,
-  );
+  expect(screen.queryByRole("region", { name: /knee/i })).toBeNull(); // removed 2026-11-12
 });
 
 test("a difference within repeat-walk variation is labelled as such", async () => {

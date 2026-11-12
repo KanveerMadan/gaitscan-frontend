@@ -24,7 +24,6 @@ test("the Learn index lists every measurement GaitScan can show, without signing
   for (const [name, href] of [
     [/cadence/i, "/learn/cadence"],
     [/step time/i, "/learn/step-time"],
-    [/knee/i, "/learn/peak-knee-flexion"],
     [/step length/i, "/learn/step-length"],
     [/walking speed/i, "/learn/walking-speed"],
   ])
@@ -46,8 +45,8 @@ test("a validated measurement's page gives the API's error range and cites its s
 });
 
 test("an unvalidated measurement's page says so up front", async () => {
-  open("/learn/peak-knee-flexion");
-  expect(await screen.findByRole("heading", { level: 1, name: /knee/i })).toBeInTheDocument();
+  open("/learn/walking-speed");
+  expect(await screen.findByRole("heading", { level: 1, name: /walking speed/i })).toBeInTheDocument();
   expect(screen.getByRole("main").textContent).toMatch(/not yet validated/i);
 });
 

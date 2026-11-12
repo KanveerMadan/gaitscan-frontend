@@ -491,8 +491,8 @@ export interface paths {
     delete: operations["delete_profile_profiles__profile_id__delete"];
     options?: never;
     head?: never;
-    /** Rename Profile */
-    patch: operations["rename_profile_profiles__profile_id__patch"];
+    /** Update Profile */
+    patch: operations["update_profile_profiles__profile_id__patch"];
     trace?: never;
   };
   "/report/{job_id}": {
@@ -896,6 +896,8 @@ export interface components {
       is_adult: boolean;
       /** Name */
       name: string;
+      /** Sex */
+      sex?: ("female" | "male") | null;
     };
     /** ProfileOut */
     ProfileOut: {
@@ -905,11 +907,18 @@ export interface components {
       id: number;
       /** Name */
       name: string;
+      /** Sex */
+      sex?: ("female" | "male") | null;
     };
-    /** ProfileRename */
-    ProfileRename: {
+    /**
+     * ProfileUpdate
+     * @description Only the fields sent change; "sex": null removes it.
+     */
+    ProfileUpdate: {
       /** Name */
-      name: string;
+      name?: string | null;
+      /** Sex */
+      sex?: ("female" | "male") | null;
     };
     /** RecoverRequest */
     RecoverRequest: {
@@ -1071,6 +1080,8 @@ export interface components {
     };
     /** Settings */
     Settings: {
+      /** Birth Year */
+      birth_year?: number | null;
       /** Goal Cadence */
       goal_cadence?: number | null;
       /**
@@ -1081,6 +1092,8 @@ export interface components {
       language: "en" | "hi";
       /** Retest Weeks */
       retest_weeks?: (1 | 2 | 4 | 8 | 12) | null;
+      /** Sex */
+      sex?: ("female" | "male") | null;
       /**
        * Theme
        * @default system
@@ -1099,12 +1112,16 @@ export interface components {
      * @description Only the fields sent change; retest_weeks / goal_cadence: null turns them off.
      */
     SettingsUpdate: {
+      /** Birth Year */
+      birth_year?: number | null;
       /** Goal Cadence */
       goal_cadence?: number | null;
       /** Language */
       language?: ("en" | "hi") | null;
       /** Retest Weeks */
       retest_weeks?: (1 | 2 | 4 | 8 | 12) | null;
+      /** Sex */
+      sex?: ("female" | "male") | null;
       /** Theme */
       theme?: ("system" | "light" | "dark") | null;
       /** Units */
@@ -2093,7 +2110,7 @@ export interface operations {
       };
     };
   };
-  rename_profile_profiles__profile_id__patch: {
+  update_profile_profiles__profile_id__patch: {
     parameters: {
       query?: never;
       header?: never;
@@ -2104,7 +2121,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ProfileRename"];
+        "application/json": components["schemas"]["ProfileUpdate"];
       };
     };
     responses: {

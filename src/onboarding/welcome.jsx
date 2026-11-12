@@ -21,8 +21,7 @@ function Measures() {
       <CardContent className="flex flex-col gap-3 text-sm leading-relaxed">
         <p>
           From a side-on video of you walking, GaitScan measures your cadence (steps per minute) and step
-          time, with the error range found when it was checked against a public walking dataset. It also shows
-          how far each knee bends, marked as not yet validated.
+          time, with the error range found when it was checked against a public walking dataset.
         </p>
         <p className="text-muted-foreground">
           <DisclaimerText />

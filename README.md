@@ -5,6 +5,7 @@
 ![Vite 8](https://img.shields.io/badge/vite-8-646cff)
 ![Accessibility: axe WCAG 2.1 AA](https://img.shields.io/badge/axe-WCAG%202.1%20AA-2e7d32)
 ![Status: experimental](https://img.shields.io/badge/status-experimental-orange)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 The web app for GaitScan: film yourself walking side-on, and get your cadence and step time with
 their error ranges. The API and the measurement pipeline are in the
@@ -23,8 +24,11 @@ Live: https://gaitscan-frontend-mnt9.vercel.app
   - A treadmill test at an entered belt speed (not yet validated).
   - Results show cadence and step time with the error range from the backend's accuracy check
     (LJMU, Topham et al. 2023).
-  - Knee bend, and step length and speed (with a floor calibration), are labelled "not yet
-    validated".
+  - Step length and speed (with a floor calibration) and the treadmill test are labelled "not yet
+    validated", for good: no more video will be collected to check them (2026-11-12). Knee angle was
+    removed the same day.
+  - With an optional sex and year of birth (Settings), a published cadence reference for that age
+    and sex beside the result (Mobbs et al. 2025, CC BY 4.0, cited in the app).
   - Each walk across the frame is listed on its own, with a recording-quality summary.
 - **Turned-down videos** come with the reason and what to change.
 - **Before filming:** a setup check (live framing guidance in the browser), a first-test walkthrough,
@@ -34,10 +38,10 @@ Live: https://gaitscan-frontend-mnt9.vercel.app
   - A cadence goal, re-test reminders as a calendar file, and a "next walking test" card.
   - Ghost replay: two sessions' averaged strides, one over the other.
   - Comparing two sessions, with "real change" vs "within measurement error".
-  - Knee-angle curves and an authenticated PDF report.
+  - An authenticated PDF report.
 - **Accounts and privacy:**
   - Consent before the first analysis.
-  - Privacy center: export, delete sessions, delete the account.
+  - Privacy center: export, delete sessions, delete the account, and how long each kind of data is kept.
   - Recovery codes, change password, Sign in with Google (when configured).
   - Password reset and email verification pages (unused until the backend sends email).
   - Other adults on one account (profiles), each with their own history.
@@ -98,7 +102,11 @@ Pre-commit hooks (ESLint, Prettier): `pre-commit install` (git ≥ 2.35).
 
 ## License
 
-No licence has been chosen yet, so the default applies: all rights reserved.
+[MIT](LICENSE). The licence covers this code only. GaitScan is not a medical device, and its
+measurements have not been clinically validated.
+
+Third-party material keeps its own terms: the cadence reference shown in the app is from Mobbs et al.
+2025 (_Sensors_ 25(2):581, CC BY 4.0); the icons are Phosphor (MIT).
 
 ## More
 

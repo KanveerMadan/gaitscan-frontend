@@ -4,7 +4,6 @@ import { PageSkeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router";
 import { api, errorMessage, forgetLinkToken, formatDate, takeLinkToken } from "@/api/client";
 import { Brand, Disclaimer } from "@/components/app-shell";
-import { KneeCurves } from "@/components/knee-curves";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
@@ -49,7 +48,6 @@ export function SharedPage() {
             </div>
             <ResultHeadline result={shared.result} />
             <MeasurementTable result={shared.result} />
-            <KneeCurves series={[{ label: "This session", result: shared.result }]} />
             <PassTable result={shared.result} />
             <QualitySummary quality={shared.result?.quality} />
           </>
