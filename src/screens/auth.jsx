@@ -44,8 +44,9 @@ function AuthScreen({ children }) {
       <main className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-sm">{children}</div>
         <p role="note" className="mt-10 max-w-sm text-xs leading-relaxed text-muted-foreground">
-          GaitScan is an experimental measurement tool, not a medical device. It does not diagnose conditions
-          or predict outcomes, and its measurements have not been clinically validated.
+          GaitScan is for general wellness and information. It is an experimental measurement tool, not a
+          medical device: it does not assess health conditions or predict outcomes, and its measurements have
+          not been clinically validated.
         </p>
       </main>
     </div>

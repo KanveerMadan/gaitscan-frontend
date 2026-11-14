@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
+import { GaitProfileView } from "@/components/gait-profile";
+import { hasGaitProfile } from "@/lib/gait-profile";
 
 function Labels({ session }) {
   const [notes, setNotes] = useState(session.notes ?? "");
@@ -154,7 +156,7 @@ export function SessionScreen() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">{formatDate(session.created_at)}</h1>
-            {!session.legacy && (
+            {!session.legacy && !hasGaitProfile(session.result) && (
               <Button size="sm" onClick={() => downloadReport(session.id)}>
                 <DownloadSimple aria-hidden />
                 Download PDF report
@@ -163,6 +165,14 @@ export function SessionScreen() {
           </div>
           {session.legacy ? (
             <Alert>{session.note}</Alert>
+          ) : hasGaitProfile(session.result) ? (
+            <>
+              <GaitProfileView result={session.result} sessionId={session.id} />
+              <StrideReplay
+                series={[{ label: "This session", outline: session.result?.curves?.stride_outline }]}
+              />
+              <PassTable result={session.result} />
+            </>
           ) : (
             <>
               <ResultHeadline result={session.result} />

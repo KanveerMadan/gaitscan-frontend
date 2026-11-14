@@ -43,7 +43,7 @@ function signIn(settings = null) {
   );
 }
 
-async function openSession(result = RESULT) {
+async function openSession(result = RESULT, summary = "Summary") {
   window.history.pushState({}, "", "/sessions/s1");
   axios.get.mockImplementation((url) => {
     if (url.endsWith("/sessions/s1")) return Promise.resolve({ data: session(result) });
@@ -54,7 +54,7 @@ async function openSession(result = RESULT) {
   await act(async () => {
     render(<App />);
   });
-  return screen.findByRole("region", { name: "Summary" });
+  return screen.findByRole("region", { name: summary });
 }
 
 // A walk with one key measure slightly outside, as the API presents it.
@@ -186,7 +186,8 @@ test("joint movement shows a chart with a text summary per joint, key events, ra
   expect(within(joints).getByRole("row", { name: /knee bend in swing/i })).toHaveTextContent("56.7°");
   expect(within(joints).getByRole("row", { name: /hip range of motion/i })).toHaveTextContent("±4.0°");
   expect(joints).toHaveTextContent(/9° more than a sensor worn on the thigh/);
-  expect(within(joints).getByRole("row", { name: /arm swing/i })).toHaveTextContent("Information");
+  expect(within(joints).getByRole("row", { name: /trunk lean/i })).toHaveTextContent("Information");
+  expect(within(joints).getByRole("row", { name: /arm swing/i })).toHaveTextContent("Not enough data");
   expect(within(joints).getByRole("img", { name: "Skeleton at heel strike" })).toBeInTheDocument();
   expect(within(joints).getByRole("img", { name: "Skeleton at toe-off" })).toBeInTheDocument();
   expect(joints).toHaveTextContent(/Separate values for each leg, and symmetry, aren't shown/);
@@ -223,7 +224,7 @@ test("without a verdict the page says why and how to re-record, and opens the qu
 
 test("in Hindi the verdict and the section titles are in Hindi, and the report is asked for in Hindi", async () => {
   signIn({ language: "hi" });
-  const card = await openSession();
+  const card = await openSession(RESULT, "सारांश");
   expect(card).toHaveTextContent("सामान्य सीमा में है।");
   expect(screen.getByRole("region", { name: "समय और लय" })).toBeInTheDocument();
   await act(async () => {

@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MeasurementTable, ResultHeadline, PassTable, QualitySummary } from "@/measurements";
 import { CadenceReference } from "@/components/cadence-reference";
+import { GaitProfileView } from "@/components/gait-profile";
+import { hasGaitProfile } from "@/lib/gait-profile";
 import { usePerson } from "@/lib/person";
 
 const STEPS = ["analyse.step1", "analyse.step2", "analyse.step3"];
@@ -146,16 +148,27 @@ export function AnalyseScreen() {
             <ArrowLeft aria-hidden />
             {t("analyse.another")}
           </Button>
-          <Button size="sm" onClick={() => downloadReport(results.job_id)}>
-            <DownloadSimple aria-hidden />
-            {t("analyse.pdf")}
-          </Button>
+          {!hasGaitProfile(results.result) && (
+            <Button size="sm" onClick={() => downloadReport(results.job_id)}>
+              <DownloadSimple aria-hidden />
+              {t("analyse.pdf")}
+            </Button>
+          )}
         </div>
-        <ResultHeadline result={results.result} />
-        <CadenceReference result={results.result} person={person} />
-        <MeasurementTable result={results.result} />
-        <PassTable result={results.result} />
-        <QualitySummary quality={results.result?.quality} />
+        {hasGaitProfile(results.result) ? (
+          <>
+            <GaitProfileView result={results.result} sessionId={results.job_id} />
+            <PassTable result={results.result} />
+          </>
+        ) : (
+          <>
+            <ResultHeadline result={results.result} />
+            <CadenceReference result={results.result} person={person} />
+            <MeasurementTable result={results.result} />
+            <PassTable result={results.result} />
+            <QualitySummary quality={results.result?.quality} />
+          </>
+        )}
       </div>
     );
   }

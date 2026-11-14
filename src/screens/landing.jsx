@@ -83,8 +83,9 @@ function Hero() {
             </Link>
           </div>
           <p role="note" className="text-xs leading-relaxed text-stage-muted">
-            An experimental measurement tool, not a medical device. It does not diagnose conditions or predict
-            outcomes, and its measurements have not been clinically validated.
+            For general wellness and information. An experimental measurement tool, not a medical device: it
+            does not assess health conditions or predict outcomes, and its measurements have not been
+            clinically validated.
           </p>
         </div>
       </div>
