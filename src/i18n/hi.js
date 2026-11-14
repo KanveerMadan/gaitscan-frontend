@@ -179,4 +179,23 @@ export default {
   "profile.meaning.ankle_rom": "एक कदम-चक्र में पंजा सबसे ऊपर से सबसे नीचे तक।",
   "profile.meaning.trunk_lean_deg": "धड़ का आगे (धन) या पीछे झुकाव।",
   "profile.meaning.arm_swing_deg": "सबसे ज़्यादा दिखने वाली बाँह का आगे-पीछे झूलना।",
+
+  // History, progress and the Settings prompt (Phase 11 FE-B).
+  "progress.title": "प्रगति",
+  "progress.intro": "गेट प्रोफ़ाइल वाले आपके टेस्ट, सबसे पुराना पहले। केवल ज़मीन पर चलना।",
+  "progress.overTime": "समय के साथ {metric}",
+  "progress.chartSummary": "{n} टेस्ट में, {firstDate} को {first} से {lastDate} को {last} तक।",
+  "progress.change": "पिछले टेस्ट से बदलाव",
+  "progress.up": "बढ़ा",
+  "progress.down": "घटा",
+  "progress.same": "कोई बदलाव नहीं",
+  "progress.sameNote": 'त्रुटि सीमा से छोटा बदलाव "कोई बदलाव नहीं" दिखता है।',
+  "progress.goal":
+    "कैडेंस का लक्ष्य: {goal} कदम/मिनट। पिछला टेस्ट: {value} कदम/मिनट। कैडेंस चार्ट पर डैश वाली रेखा आपका लक्ष्य है।",
+  "history.stepCv": "कदम के समय में अंतर",
+  "history.kneeRange": "घुटने की गति-सीमा",
+  "profile.promptBefore": "उम्र के हिसाब से तुलना के लिए ",
+  "profile.promptLink": "सेटिंग्स",
+  "profile.promptAfter": " में अपना जन्म वर्ष और लिंग जोड़ें।",
+  "profile.promptLabel": "उम्र के हिसाब से तुलना",
 };

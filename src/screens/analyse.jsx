@@ -157,7 +157,7 @@ export function AnalyseScreen() {
         </div>
         {hasGaitProfile(results.result) ? (
           <>
-            <GaitProfileView result={results.result} sessionId={results.job_id} />
+            <GaitProfileView result={results.result} sessionId={results.job_id} person={person} owner />
             <PassTable result={results.result} />
           </>
         ) : (

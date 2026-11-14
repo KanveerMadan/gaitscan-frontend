@@ -175,4 +175,23 @@ export default {
   "profile.meaning.ankle_rom": "From most toes-up to most toes-down over a stride.",
   "profile.meaning.trunk_lean_deg": "Forward (positive) or backward lean of the trunk.",
   "profile.meaning.arm_swing_deg": "Forward-and-back swing of the arm seen most.",
+
+  // History, progress and the Settings prompt (Phase 11 FE-B).
+  "progress.title": "Progress",
+  "progress.intro": "Your tests with a gait profile, oldest first. Walks over the ground only.",
+  "progress.overTime": "{metric} over time",
+  "progress.chartSummary": "From {first} on {firstDate} to {last} on {lastDate}, over {n} tests.",
+  "progress.change": "Change since last test",
+  "progress.up": "up",
+  "progress.down": "down",
+  "progress.same": "no change",
+  "progress.sameNote": "A change smaller than the error range shows as no change.",
+  "progress.goal":
+    "Cadence goal: {goal} steps/min. Latest: {value} steps/min. The dashed line on the cadence chart is your goal.",
+  "history.stepCv": "Step-time variability",
+  "history.kneeRange": "Knee range",
+  "profile.promptBefore": "Add your birth year and sex in ",
+  "profile.promptLink": "Settings",
+  "profile.promptAfter": " for age-matched comparisons.",
+  "profile.promptLabel": "Age-matched comparisons",
 };

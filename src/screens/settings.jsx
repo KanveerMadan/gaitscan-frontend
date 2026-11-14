@@ -150,10 +150,12 @@ function AboutYouCard({ settings, save }) {
       <CardHeader>
         <CardTitle>About you (optional)</CardTitle>
         <CardDescription>
-          Give both and your results show the cadence of people of your sex and age group in a published study
-          (<ReferenceSource />
-          ), for context. Leave them empty and nothing is shown. They're used for nothing else, aren't in
-          shared links or reports, and you can remove them at any time.
+          Give both and your results are compared with people of your sex and age group: cadence with a
+          published study (<ReferenceSource />
+          ), the other measures with healthy adults measured by this app. Leave them empty and results are
+          compared with all adults. Your age and sex appear on your PDF reports, including ones a linked
+          clinician downloads. Shared links compare with all adults and don't include them. They're used for
+          nothing else, and you can remove them at any time.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">

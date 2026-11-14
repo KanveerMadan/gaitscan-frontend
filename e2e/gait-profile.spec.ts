@@ -30,6 +30,56 @@ async function mockApi(page: Page, reports: string[]) {
         : json({ job_id: JOB, status: "done", rejection: null, error: null, analysis });
     }
     if (url.pathname === "/references") return json(REFERENCES);
+    if (url.pathname === "/sessions")
+      return json([
+        {
+          id: JOB,
+          created_at: "2026-11-14T10:00:00",
+          pipeline_version: "3.0.0",
+          legacy: false,
+          result: RESULT,
+          note: null,
+          notes: null,
+          tags: [],
+          profile_id: null,
+        },
+        {
+          id: "earlier",
+          created_at: "2026-10-20T10:00:00",
+          pipeline_version: "3.0.0",
+          legacy: false,
+          result: RESULT,
+          note: null,
+          notes: null,
+          tags: [],
+          profile_id: null,
+        },
+      ]);
+    if (url.pathname === "/me/trends")
+      return json({
+        sessions: [
+          {
+            id: "earlier",
+            created_at: "2026-10-20T10:00:00",
+            overall: "typical",
+            cadence: 106,
+            step_time_cv: 2.8,
+            knee_rom: 52,
+            hip_rom: 49,
+            gps: 6.5,
+          },
+          {
+            id: JOB,
+            created_at: "2026-11-14T10:00:00",
+            overall: "typical",
+            cadence: 110,
+            step_time_cv: 0,
+            knee_rom: 44.8,
+            hip_rom: 50.6,
+            gps: 13.5,
+          },
+        ],
+      });
     if (url.pathname.startsWith("/report/")) {
       reports.push(url.pathname + url.search);
       return route.fulfill({ status: 200, contentType: "application/pdf", body: "%PDF-1.4" });
@@ -50,7 +100,7 @@ async function signInAndUpload(page: Page) {
     .setInputFiles({ name: "walk.mp4", mimeType: "video/mp4", buffer: Buffer.alloc(64) });
 }
 
-test("upload a walk, see the gait profile summary and download the report", async ({ page }) => {
+test("upload a walk, see the summary, download the report, then history and progress", async ({ page }) => {
   const reports: string[] = [];
   await mockApi(page, reports);
   await signInAndUpload(page);
@@ -64,6 +114,16 @@ test("upload a walk, see the gait profile summary and download the report", asyn
   await summary.getByRole("button", { name: "Download report (PDF)" }).click();
   await download;
   expect(reports).toEqual([`/report/${JOB}?lang=en`]);
+
+  // On to history: the row's verdict, and the progress view from the trends.
+  await page.getByRole("link", { name: "History" }).click();
+  const rows = page.getByRole("list", { name: "Sessions" }).getByRole("listitem");
+  await expect(rows.first().getByRole("img", { name: "Typical" })).toBeVisible();
+  const progress = page.getByRole("region", { name: "Progress" });
+  await expect(progress.getByRole("figure", { name: "Knee range of motion over time" })).toBeVisible();
+  await expect(progress.getByRole("list", { name: "Change since last test" })).toContainText(
+    "Knee range of motion: down",
+  );
 });
 
 test("the result page fits a 360 px phone screen", async ({ page }) => {
