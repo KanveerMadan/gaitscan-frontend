@@ -167,7 +167,7 @@ export function SessionScreen() {
             <Alert>{session.note}</Alert>
           ) : hasGaitProfile(session.result) ? (
             <>
-              <GaitProfileView result={session.result} sessionId={session.id} />
+              <GaitProfileView result={session.result} sessionId={session.id} person={person} owner={owner} />
               <StrideReplay
                 series={[{ label: "This session", outline: session.result?.curves?.stride_outline }]}
               />

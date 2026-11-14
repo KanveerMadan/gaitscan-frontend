@@ -5,6 +5,8 @@ import { useAuth } from "@/auth-context";
 import { Info, Warning } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/badge";
 import { isTreadmill } from "@/lib/results";
+import { hasGaitProfile, num } from "@/lib/gait-profile";
+import { OverallMark } from "@/components/gait-profile";
 import { useT } from "@/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -295,6 +297,38 @@ export function QualitySummary({ quality }) {
 
 const LEGACY_LABEL = "Earlier version: measurements not shown";
 
+// A v3 result's row (Phase 11 FE-B): the overall verdict and the key numbers, both legs.
+function ProfileSummary({ result }) {
+  const t = useT();
+  const gp = result.gait_profile;
+  const cv = gp.timing?.step_time_cv?.value;
+  const knee = gp.kinematics?.knee_rom?.value;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <strong className="font-medium text-foreground">
+        <OverallMark overall={gp.verdict.overall} />
+      </strong>
+      <span>
+        Cadence:{" "}
+        <strong className="tabular font-medium text-foreground">
+          {formatValue(result.metrics?.cadence)}
+        </strong>
+      </span>
+      {cv != null && (
+        <span>
+          {t("history.stepCv")}: <strong className="tabular font-medium text-foreground">{num(cv)} %</strong>
+        </span>
+      )}
+      {knee != null && (
+        <span>
+          {t("history.kneeRange")}:{" "}
+          <strong className="tabular font-medium text-foreground">{num(knee)}°</strong>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function SessionSummary({ session }) {
   if (session.legacy) {
     return (
@@ -305,6 +339,7 @@ export function SessionSummary({ session }) {
     );
   }
   const m = session.result?.metrics ?? {};
+  if (hasGaitProfile(session.result)) return <ProfileSummary result={session.result} />;
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
       {isTreadmill(session.result) && <Badge variant="muted">Treadmill</Badge>}

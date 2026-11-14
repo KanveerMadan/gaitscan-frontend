@@ -13,13 +13,17 @@ import { nextTestDue } from "@/lib/reminders";
 import { ReminderButton } from "@/screens/settings";
 import { SessionSummary } from "@/measurements";
 import { isTreadmill } from "@/lib/results";
-import { useT } from "@/i18n";
+import { useLanguage, useT } from "@/i18n";
+import { ProgressView } from "@/components/progress";
+import { hasGaitProfile } from "@/lib/gait-profile";
 import { cn } from "@/lib/utils";
 import { EmptyState, LoadError } from "@/components/states";
 import { ListSkeleton } from "@/components/ui/skeleton";
 
 // sessions: newest first. `linkTo(s)` makes each date a link; `selected`/`onToggle` add checkboxes.
 export function SessionList({ sessions, linkTo, selected, onToggle }) {
+  const t = useT();
+  const lang = useLanguage();
   return (
     <ul aria-label="Sessions" className="divide-y rounded-lg border bg-surface">
       {sessions.map((s) => {
@@ -56,9 +60,9 @@ export function SessionList({ sessions, linkTo, selected, onToggle }) {
               )}
             </div>
             {!s.legacy && (
-              <Button variant="ghost" size="sm" onClick={() => downloadReport(s.id)}>
+              <Button variant="ghost" size="sm" onClick={() => downloadReport(s.id, lang)}>
                 <DownloadSimple aria-hidden />
-                Download report
+                {t("profile.download")}
               </Button>
             )}
           </li>
@@ -238,6 +242,8 @@ export function HistoryScreen() {
   const [tag, setTag] = useState(null);
   const profiles = user?.profiles ?? [];
   const [who, setWho] = useState(""); // "": the account holder; else a profile's id
+  // The progress view (GET /me/trends) replaces the cadence chart once two tests have a gait profile.
+  const [progress, setProgress] = useState(false);
 
   const [failed, setFailed] = useState(false);
   const fetchHistory = async () => {
@@ -270,6 +276,7 @@ export function HistoryScreen() {
         [s.notes ?? "", ...(s.tags ?? []), formatDate(s.created_at)].join(" ").toLowerCase().includes(q)),
   );
   const canCompare = selected.length === 2;
+  const enoughForProgress = sessions.filter((s) => hasGaitProfile(s.result)).length >= 2;
 
   return (
     <div className="flex flex-col gap-6">
@@ -313,7 +320,17 @@ export function HistoryScreen() {
       {!loading && latest && <Latest session={latest} />}
       {!loading && <GoalCard latest={latest} />}
       {!loading && <NextTest latest={latest} />}
-      {!loading && <CadenceTrend sessions={sessions} goal={user?.settings?.goal_cadence ?? null} />}
+      {!loading && !failed && enoughForProgress && (
+        <ProgressView
+          key={who}
+          profileId={who ? Number(who) : null}
+          goal={who ? null : (user?.settings?.goal_cadence ?? null)}
+          onAvailable={setProgress}
+        />
+      )}
+      {!loading && !(progress && enoughForProgress) && (
+        <CadenceTrend sessions={sessions} goal={user?.settings?.goal_cadence ?? null} />
+      )}
       {!loading && sessions.length > 0 && (
         <section className="flex flex-col gap-3" aria-label="Sessions">
           <div className="flex flex-wrap items-center justify-between gap-2">

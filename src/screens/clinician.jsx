@@ -42,7 +42,9 @@ function PatientDetail({ patient, onBack }) {
       {loading && <ListSkeleton label="Loading patients" />}
       {!loading && failed && <LoadError message="Couldn't load this patient's sessions." onRetry={load} />}
       {!loading && !failed && <CadenceTrend sessions={sessions} />}
-      {!loading && !failed && sessions.length > 0 && <SessionList sessions={sessions} />}
+      {!loading && !failed && sessions.length > 0 && (
+        <SessionList sessions={sessions} linkTo={(s) => `/sessions/${s.id}`} />
+      )}
       {!loading && !failed && sessions.length === 0 && (
         <EmptyState title="No sessions yet for this patient." />
       )}

@@ -115,6 +115,10 @@ export const api = {
     await axios.delete(`${API}/profiles/${id}`);
   },
   sessions: async () => (await axios.get<SessionOut[]>(`${API}/sessions`)).data,
+  // Per-session key numbers over time (one person: the account holder, or a profile).
+  trends: async (profileId: number | null = null) =>
+    (await axios.get<S["Trends"]>(`${API}/me/trends${profileId != null ? `?profile_id=${profileId}` : ""}`))
+      .data,
   // The typical joint curves and GPS band (the same for everyone): fetched once per page load.
   references: () =>
     (referencesOnce ??= axios

@@ -18,6 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Link } from "react-router";
 import { DownloadSimple, Info } from "@phosphor-icons/react";
 import { api, downloadReport } from "@/api/client";
 import { AXIS, GRID, SERIES, TOOLTIP } from "@/components/chart-theme";
@@ -101,13 +102,13 @@ function LevelCell({ level }) {
   );
 }
 
-function OverallIcon({ overall }) {
+function OverallIcon({ overall, size = 40 }) {
   const t = useT();
   const o = OVERALL[overall];
   const label = t(o ? o.key : "profile.iconNone");
   const colour = o ? o.colour : "var(--muted-foreground)";
   return (
-    <svg role="img" aria-label={label} width="40" height="40" viewBox="0 0 40 40" className="shrink-0">
+    <svg role="img" aria-label={label} width={size} height={size} viewBox="0 0 40 40" className="shrink-0">
       {overall === "typical" && (
         <>
           <circle cx="20" cy="20" r="19" fill={colour} />
@@ -580,12 +581,48 @@ function QualityDetails({ result, profile }) {
   );
 }
 
-/** The v3 result page sections. `sessionId` enables the report download. */
-export function GaitProfileView({ result, sessionId }) {
+/** The overall verdict as a small mark and its words (history rows). */
+export function OverallMark({ overall }) {
+  const t = useT();
+  const o = OVERALL[overall];
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <OverallIcon overall={overall} size={14} />
+      {t(o ? o.key : "profile.iconNone")}
+    </span>
+  );
+}
+
+// Brief §4.3: a gentle prompt when the person's age or sex is missing (both stay optional).
+function AgeSexPrompt() {
+  const t = useT();
+  return (
+    <p
+      role="note"
+      aria-label={t("profile.promptLabel")}
+      className="flex gap-2 rounded-lg border bg-muted/30 p-3 text-sm"
+    >
+      <Info className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
+      <span>
+        {t("profile.promptBefore")}
+        <Link to="/settings" className="font-medium text-primary underline-offset-4 hover:underline">
+          {t("profile.promptLink")}
+        </Link>
+        {t("profile.promptAfter")}
+      </span>
+    </p>
+  );
+}
+
+/** The v3 result page sections. `sessionId` enables the report download; `person` is whose age and sex
+ * apply (the account holder's settings or a profile), shown a prompt when either is missing and the
+ * viewer is the `owner`. */
+export function GaitProfileView({ result, sessionId, person = null, owner = false }) {
   const profile = result?.gait_profile;
   if (!profile?.verdict) return null;
   return (
     <div className="flex flex-col gap-4">
+      {owner && (!person?.sex || !person?.birth_year) && <AgeSexPrompt />}
       <SummaryCard profile={profile} sessionId={sessionId} />
       <TimingSection result={result} profile={profile} />
       <JointSection result={result} profile={profile} />

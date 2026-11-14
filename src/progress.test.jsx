@@ -230,7 +230,7 @@ test("Settings says where age and sex are used now", async () => {
 
 test("a clinician opens a patient's session from their list", async () => {
   signIn({}, "clinician");
-  window.history.pushState({}, "", "/clinician");
+  window.history.pushState({}, "", "/patients");
   axios.get.mockImplementation((url) => {
     if (url.endsWith("/clinician/patients"))
       return Promise.resolve({
@@ -254,8 +254,9 @@ test("a clinician opens a patient's session from their list", async () => {
   await act(async () => {
     render(<App />);
   });
+  const patient = await screen.findByRole("button", { name: /Ravi/ });
   await act(async () => {
-    fireEvent.click(await screen.findByRole("button", { name: /Ravi/ }));
+    fireEvent.click(patient);
   });
   const list = await screen.findByRole("list", { name: "Sessions" });
   expect(within(list).getByRole("link", { name: /14 Nov 2026/ })).toHaveAttribute("href", "/sessions/s3");
