@@ -23,6 +23,18 @@ export type SharedSession = S["SharedSession"];
 
 export const API: string = import.meta.env.VITE_API_BASE_URL;
 
+export type References = {
+  typical_sd: number;
+  curves: Record<"knee" | "hip" | "ankle", { mean: number[]; lo: number[]; hi: number[]; n: number }>;
+  gps: { typical: [number, number] };
+  label: Record<string, string>;
+};
+let referencesOnce: Promise<References> | null = null;
+/** Tests start each case without a cached answer. */
+export function resetReferences(): void {
+  referencesOnce = null;
+}
+
 export type Calibration = Partial<
   Record<"calib_x1" | "calib_y1" | "calib_x2" | "calib_y2" | "calib_distance_m", number>
 >;
@@ -103,6 +115,15 @@ export const api = {
     await axios.delete(`${API}/profiles/${id}`);
   },
   sessions: async () => (await axios.get<SessionOut[]>(`${API}/sessions`)).data,
+  // The typical joint curves and GPS band (the same for everyone): fetched once per page load.
+  references: () =>
+    (referencesOnce ??= axios
+      .get<References>(`${API}/references`)
+      .then((r) => r.data)
+      .catch((e) => {
+        referencesOnce = null; // try again next time
+        throw e;
+      })),
   session: async (id: string) => (await axios.get<SessionDetail>(`${API}/sessions/${id}`)).data,
   labelSession: async (id: string, body: S["SessionLabels"]) =>
     (await axios.patch<SessionOut>(`${API}/sessions/${id}`, body)).data,
@@ -260,9 +281,11 @@ export function forgetLinkToken(): void {
   if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
 }
 
-export async function downloadReport(id: string): Promise<void> {
+// The PDF report; `lang` picks its language (en or hi), else the API uses the reader's setting.
+export async function downloadReport(id: string, lang?: string): Promise<void> {
   try {
-    const res = await axios.get<Blob>(`${API}/report/${id}`, { responseType: "blob" });
+    const query = lang ? `?lang=${encodeURIComponent(lang)}` : "";
+    const res = await axios.get<Blob>(`${API}/report/${id}${query}`, { responseType: "blob" });
     const url = URL.createObjectURL(res.data);
     const a = document.createElement("a");
     a.href = url;
