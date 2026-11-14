@@ -442,6 +442,23 @@ export interface paths {
     patch: operations["update_settings_me_settings_patch"];
     trace?: never;
   };
+  "/me/trends": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Trends */
+    get: operations["trends_me_trends_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/patient/join": {
     parameters: {
       query?: never;
@@ -493,6 +510,23 @@ export interface paths {
     head?: never;
     /** Update Profile */
     patch: operations["update_profile_profiles__profile_id__patch"];
+    trace?: never;
+  };
+  "/references": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** References */
+    get: operations["references_references_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/report/{job_id}": {
@@ -977,6 +1011,10 @@ export interface components {
       curves: {
         [key: string]: unknown;
       };
+      /** Gait Profile */
+      gait_profile?: {
+        [key: string]: unknown;
+      } | null;
       /** Metrics */
       metrics: {
         [key: string]: unknown;
@@ -1211,6 +1249,30 @@ export interface components {
        * @default bearer
        */
       token_type: string;
+    };
+    /** TrendPoint */
+    TrendPoint: {
+      /** Cadence */
+      cadence: number | null;
+      /** Created At */
+      created_at: string | null;
+      /** Gps */
+      gps: number | null;
+      /** Hip Rom */
+      hip_rom: number | null;
+      /** Id */
+      id: string;
+      /** Knee Rom */
+      knee_rom: number | null;
+      /** Overall */
+      overall: string | null;
+      /** Step Time Cv */
+      step_time_cv: number | null;
+    };
+    /** Trends */
+    Trends: {
+      /** Sessions */
+      sessions: components["schemas"]["TrendPoint"][];
     };
     /** ValidationError */
     ValidationError: {
@@ -1995,6 +2057,37 @@ export interface operations {
       };
     };
   };
+  trends_me_trends_get: {
+    parameters: {
+      query?: {
+        profile_id?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Trends"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   join_clinician_patient_join_post: {
     parameters: {
       query?: never;
@@ -2145,9 +2238,33 @@ export interface operations {
       };
     };
   };
-  get_report_report__job_id__get: {
+  references_references_get: {
     parameters: {
       query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: unknown;
+          };
+        };
+      };
+    };
+  };
+  get_report_report__job_id__get: {
+    parameters: {
+      query?: {
+        lang?: ("en" | "hi") | null;
+      };
       header?: never;
       path: {
         job_id: string;
