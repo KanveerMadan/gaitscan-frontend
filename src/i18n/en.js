@@ -113,7 +113,8 @@ export default {
   "profile.keyEvents": "Key events",
   "profile.rom": "Range of motion",
   "profile.posture": "Trunk and arms",
-  "profile.armNote": "Arm swing hasn't been checked against a sensor yet.",
+  "profile.armNote":
+    "Arm swing is information only. Checked against a sensor worn on the upper arm, it read about 5° higher on average (mean difference 8°): not close enough to compare with a typical range.",
   "profile.knee": "Knee",
   "profile.hip": "Hip",
   "profile.ankle": "Ankle",
