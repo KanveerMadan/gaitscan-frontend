@@ -32,8 +32,8 @@
     },
     "step_time": {
       "status": "validated",
-      "error_95": 0.02,
-      "mdc_95": 0.03,
+      "error_95": 0.024,
+      "mdc_95": 0.025,
       "unit": "s",
       "note": "In an accuracy check on 97 side-view walks from a public dataset (LJMU), 95% of values were within ±0.024 s of the reference."
     }

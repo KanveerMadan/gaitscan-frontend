@@ -57,7 +57,11 @@ function Trend({ name, unit, points, goal }) {
       <div className="text-sm font-medium">{name}</div>
       <div aria-hidden className="h-40 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <LineChart
+            accessibilityLayer={false} // hidden: the caption is the text summary; nothing to focus
+            data={data}
+            margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+          >
             <CartesianGrid {...GRID} />
             <XAxis dataKey="date" {...AXIS} />
             <YAxis {...AXIS} width={36} domain={["auto", "auto"]} />

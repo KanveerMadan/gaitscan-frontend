@@ -114,7 +114,7 @@ export default {
   "profile.rom": "Range of motion",
   "profile.posture": "Trunk and arms",
   "profile.armNote":
-    "Arm swing is information only. Checked against a sensor worn on the upper arm, it read about 5° higher on average (mean difference 8°): not close enough to compare with a typical range.",
+    "Arm swing is measured on the upper arm (shoulder to elbow) and is information only: it never changes the summary.",
   "profile.knee": "Knee",
   "profile.hip": "Hip",
   "profile.ankle": "Ankle",
@@ -175,7 +175,7 @@ export default {
   "profile.meaning.ankle_ic": "Ankle angle as the heel lands (positive = toes up).",
   "profile.meaning.ankle_rom": "From most toes-up to most toes-down over a stride.",
   "profile.meaning.trunk_lean_deg": "Forward (positive) or backward lean of the trunk.",
-  "profile.meaning.arm_swing_deg": "Forward-and-back swing of the arm seen most.",
+  "profile.meaning.arm_swing_deg": "Forward-and-back swing of the upper arm seen most.",
 
   // History, progress and the Settings prompt (Phase 11 FE-B).
   "progress.title": "Progress",
@@ -195,4 +195,8 @@ export default {
   "profile.promptLink": "Settings",
   "profile.promptAfter": " for age-matched comparisons.",
   "profile.promptLabel": "Age-matched comparisons",
+
+  // The example result (/demo).
+  "profile.exampleReport": "Example report (PDF)",
+  "profile.exampleReportHi": "In Hindi (हिन्दी)",
 };

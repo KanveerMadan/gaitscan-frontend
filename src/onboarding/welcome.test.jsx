@@ -17,6 +17,13 @@ beforeEach(() => {
   window.history.pushState({}, "", "/");
 });
 
+// The example draws joint charts (Recharts measures its container).
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 test("a new account is taken through how GaitScan works, ending at the upload", async () => {
   axios.post.mockResolvedValueOnce({ data: { access_token: "tok", role: "patient", full_name: "New" } });
   window.history.pushState({}, "", "/signup");
@@ -33,7 +40,7 @@ test("a new account is taken through how GaitScan works, ending at the upload", 
   fireEvent.click(screen.getByRole("button", { name: /next/i }));
   // The example is the pipeline's output for the simulated walker, and says so.
   expect(screen.getByText(/simulated walker/i)).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Measurements" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Summary" })).toBeInTheDocument(); // the Phase 11 result
   await act(async () => {
     fireEvent.click(screen.getByRole("link", { name: /upload your first video/i }));
   });
@@ -51,7 +58,7 @@ test("anyone can see an example result without signing up", async () => {
   render(<App />);
   expect(await screen.findByRole("heading", { name: /example result/i })).toBeInTheDocument();
   expect(screen.getByText(/simulated walker/i)).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Measurements" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Summary" })).toBeInTheDocument(); // the Phase 11 result
   expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute("href", "/signup");
 });
 

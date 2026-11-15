@@ -7,8 +7,11 @@ import { Brand, Disclaimer, DisclaimerText } from "@/components/app-shell";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MeasurementTable, ResultHeadline, PassTable } from "@/measurements";
+import { PassTable } from "@/measurements";
+import { GaitProfileView } from "@/components/gait-profile";
+import { useT } from "@/i18n";
 import example from "./example-result.json";
+import references from "./example-references.json";
 
 const STEPS = ["What it measures", "Set up", "Example result"];
 
@@ -72,14 +75,20 @@ export function DemoPage() {
   );
 }
 
+// The simulated walker's Phase 11 result (the backend's output for tests/synthetic.py with arms) and its
+// PDF reports, made by the backend; the typical bands ship with it, so nothing waits for the API.
 function Example() {
+  const t = useT();
+  const reports = [
+    { href: "/example-report.pdf", label: t("profile.exampleReport") },
+    { href: "/example-report-hi.pdf", label: t("profile.exampleReportHi") },
+  ];
   return (
     <div className="flex flex-col gap-4">
       <Alert>
         This example comes from a simulated walker (no real person): it shows what a result looks like.
       </Alert>
-      <ResultHeadline result={example} />
-      <MeasurementTable result={example} />
+      <GaitProfileView result={example} references={references} reportLinks={reports} />
       <PassTable result={example} />
     </div>
   );
