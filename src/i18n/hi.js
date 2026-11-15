@@ -118,7 +118,7 @@ export default {
   "profile.rom": "गति-सीमा",
   "profile.posture": "धड़ और बाँहें",
   "profile.armNote":
-    "बाँहों का झूलना केवल जानकारी के लिए है। ऊपरी बाँह पर पहने सेंसर से जाँचने पर यह औसतन लगभग 5° ज़्यादा आया (औसत अंतर 8°): सामान्य सीमा से तुलना के लिए इतना पास नहीं।",
+    "बाँहों का झूलना ऊपरी बाँह (कंधे से कोहनी) पर मापा जाता है और केवल जानकारी के लिए है: इससे कुल सारांश नहीं बदलता।",
   "profile.knee": "घुटना",
   "profile.hip": "कूल्हा",
   "profile.ankle": "टखना",
@@ -179,7 +179,7 @@ export default {
   "profile.meaning.ankle_ic": "एड़ी टिकते समय टखने का कोण (धन = पंजा ऊपर)।",
   "profile.meaning.ankle_rom": "एक कदम-चक्र में पंजा सबसे ऊपर से सबसे नीचे तक।",
   "profile.meaning.trunk_lean_deg": "धड़ का आगे (धन) या पीछे झुकाव।",
-  "profile.meaning.arm_swing_deg": "सबसे ज़्यादा दिखने वाली बाँह का आगे-पीछे झूलना।",
+  "profile.meaning.arm_swing_deg": "सबसे ज़्यादा दिखने वाली ऊपरी बाँह का आगे-पीछे झूलना।",
 
   // History, progress and the Settings prompt (Phase 11 FE-B).
   "progress.title": "प्रगति",
@@ -199,4 +199,8 @@ export default {
   "profile.promptLink": "सेटिंग्स",
   "profile.promptAfter": " में अपना जन्म वर्ष और लिंग जोड़ें।",
   "profile.promptLabel": "उम्र के हिसाब से तुलना",
+
+  // The example result (/demo).
+  "profile.exampleReport": "उदाहरण रिपोर्ट (PDF, अंग्रेज़ी)",
+  "profile.exampleReportHi": "हिन्दी में",
 };

@@ -34,6 +34,7 @@ const EVENT_ROWS = ["knee_ic", "knee_peak_swing", "hip_peak_ext", "hip_peak_flex
 const ROM_ROWS = ["knee_rom", "hip_rom", "ankle_rom"];
 const POSTURE_ROWS = ["trunk_lean_deg", "arm_swing_deg"];
 const JOINTS = ["knee", "hip", "ankle"];
+const LEARN = { cadence: "cadence", step_time: "step-time" }; // measurements with a Learn page
 
 // Level shapes (circle, triangle, square) and colours, as in the PDF.
 const LEVEL = {
@@ -140,7 +141,7 @@ function OverallIcon({ overall, size = 40 }) {
 }
 
 // ---- summary ----------------------------------------------------------------------------------------
-function SummaryCard({ profile, sessionId }) {
+function SummaryCard({ profile, sessionId, reportLinks }) {
   const t = useT();
   const lang = useLanguage();
   const v = profile.verdict;
@@ -158,6 +159,23 @@ function SummaryCard({ profile, sessionId }) {
             <DownloadSimple aria-hidden />
             {t("profile.download")}
           </Button>
+        )}
+        {reportLinks && (
+          <div className="flex flex-wrap items-center gap-2">
+            {reportLinks.map(({ href, label }) => (
+              <Button
+                key={href}
+                asChild
+                size="sm"
+                variant={href === reportLinks[0].href ? "default" : "outline"}
+              >
+                <a href={href} download>
+                  <DownloadSimple aria-hidden />
+                  {label}
+                </a>
+              </Button>
+            ))}
+          </div>
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -308,7 +326,13 @@ function MetricTable({ result, profile, metrics, label }) {
           return (
             <TableRow key={m}>
               <TableCell className="min-w-44 font-medium">
-                {name}
+                {LEARN[m] ? (
+                  <Link to={`/learn/${LEARN[m]}`} className="underline-offset-4 hover:underline">
+                    {name}
+                  </Link>
+                ) : (
+                  name
+                )}
                 <Meaning metric={m} name={name} />
               </TableCell>
               <TableCell className="tabular whitespace-nowrap">
@@ -350,9 +374,11 @@ function TimingSection({ result, profile }) {
 }
 
 // ---- joint movement ---------------------------------------------------------------------------------
-function useReferences() {
-  const [refs, setRefs] = useState(null);
+// The typical bands: given (the example ships its own), or fetched once from the API.
+function useReferences(given) {
+  const [refs, setRefs] = useState(given ?? null);
   useEffect(() => {
+    if (given) return undefined;
     let live = true;
     api
       .references()
@@ -361,7 +387,7 @@ function useReferences() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [given]);
   return refs;
 }
 
@@ -391,7 +417,11 @@ function JointChart({ joint, curve, reference, toeOff }) {
       <div className="text-sm font-medium">{name}</div>
       <div aria-hidden className="h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+          <ComposedChart
+            accessibilityLayer={false} // hidden: the caption is the text summary; nothing to focus
+            data={data}
+            margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+          >
             <CartesianGrid {...GRID} />
             <XAxis dataKey="pct" type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} {...AXIS} />
             <YAxis {...AXIS} width={34} domain={["auto", "auto"]} />
@@ -465,10 +495,10 @@ function Skeleton({ pose, label }) {
   );
 }
 
-function JointSection({ result, profile }) {
+function JointSection({ result, profile, references }) {
   const t = useT();
   const lang = useLanguage();
-  const refs = useReferences();
+  const refs = useReferences(references);
   const curves = profile.kinematics.curves ?? {};
   const toeOff = profile.timing.stance_pct?.value;
   const notes = [
@@ -614,18 +644,26 @@ function AgeSexPrompt() {
   );
 }
 
-/** The v3 result page sections. `sessionId` enables the report download; `person` is whose age and sex
- * apply (the account holder's settings or a profile), shown a prompt when either is missing and the
- * viewer is the `owner`. */
-export function GaitProfileView({ result, sessionId, person = null, owner = false }) {
+/** The v3 result page sections. `sessionId` enables the report download (`reportLinks`, [{href, label}],
+ * links ready-made PDFs instead: the example); `person` is whose age and sex apply (the account holder's
+ * settings or a profile), shown a prompt when either is missing and the viewer is the `owner`;
+ * `references` are the typical bands when they're at hand (else fetched). */
+export function GaitProfileView({
+  result,
+  sessionId,
+  reportLinks,
+  references,
+  person = null,
+  owner = false,
+}) {
   const profile = result?.gait_profile;
   if (!profile?.verdict) return null;
   return (
     <div className="flex flex-col gap-4">
       {owner && (!person?.sex || !person?.birth_year) && <AgeSexPrompt />}
-      <SummaryCard profile={profile} sessionId={sessionId} />
+      <SummaryCard profile={profile} sessionId={sessionId} reportLinks={reportLinks} />
       <TimingSection result={result} profile={profile} />
-      <JointSection result={result} profile={profile} />
+      <JointSection result={result} profile={profile} references={references} />
       <QualityDetails result={result} profile={profile} />
     </div>
   );
