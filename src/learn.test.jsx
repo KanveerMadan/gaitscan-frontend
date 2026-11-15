@@ -57,7 +57,16 @@ test("an unknown measurement points back to the list", async () => {
 });
 
 test("the example result links each measurement to its Learn page", async () => {
+  global.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   open("/demo");
-  const table = await screen.findByRole("region", { name: /^measurements$/i });
-  expect(within(table).getByRole("link", { name: /cadence/i })).toHaveAttribute("href", "/learn/cadence");
+  const timing = await screen.findByRole("region", { name: "Timing and rhythm" });
+  expect(within(timing).getByRole("link", { name: /^cadence$/i })).toHaveAttribute("href", "/learn/cadence");
+  expect(within(timing).getByRole("link", { name: /^step time$/i })).toHaveAttribute(
+    "href",
+    "/learn/step-time",
+  );
 });
