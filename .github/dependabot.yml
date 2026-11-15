@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Pinned to the server's mediapipe 1.0.1 (backend pyproject.toml), so the camera check finds the
+      # body the way the analysis will; src/setup/pose.js loads the same version's wasm. It moves only
+      # with the server, after the accuracy check is re-run. Closed: #18 (2026-11-12).
+      - dependency-name: "@mediapipe/tasks-vision"
   - package-ecosystem: github-actions
     directory: /
     schedule:
